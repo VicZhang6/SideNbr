@@ -1,7 +1,10 @@
 import {
   DEFAULT_PROVIDER,
+  isBuiltinProviderId,
   isProviderId,
+  normalizeCustomProviders,
   normalizeEnabledProviders,
+  type ProviderConfig,
   type ProviderId,
 } from "./providers";
 import type { Locale } from "./i18n/types";
@@ -10,6 +13,7 @@ import type { Theme, ThemeMode } from "./theme/types";
 const ACTIVE_PROVIDER_KEY = "activeProvider";
 const ONBOARDING_SEEN_KEY = "onboardingSeen";
 const ENABLED_PROVIDERS_KEY = "enabledProviders";
+const CUSTOM_PROVIDERS_KEY = "customProviders";
 /** Stored language override: "en" | "zh" | "auto" (or missing = follow browser). */
 const LOCALE_PREFERENCE_KEY = "localePreference";
 /** Stored theme override: "light" | "dark" | "auto" (or missing = follow system). */
@@ -20,6 +24,7 @@ const PERSIST_SESSIONS_KEY = "persistSessions";
 /**
  * Load the last active AI provider from chrome.storage.local.
  * Falls back to DEFAULT_PROVIDER when missing or invalid.
+ * Custom ids are accepted as non-empty strings (caller may re-validate against enabled).
  */
 export async function loadActiveProvider(): Promise<ProviderId> {
   const result = await chrome.storage.local.get(ACTIVE_PROVIDER_KEY);
@@ -35,17 +40,43 @@ export async function saveActiveProvider(provider: ProviderId): Promise<void> {
 }
 
 /**
- * Which providers appear in the toolbar (1–4).
+ * User-defined custom providers (not in the builtin catalog).
+ */
+export async function loadCustomProviders(): Promise<ProviderConfig[]> {
+  const result = await chrome.storage.local.get(CUSTOM_PROVIDERS_KEY);
+  return normalizeCustomProviders(result[CUSTOM_PROVIDERS_KEY]);
+}
+
+export async function saveCustomProviders(
+  providers: ProviderConfig[]
+): Promise<ProviderConfig[]> {
+  const normalized = normalizeCustomProviders(providers);
+  await chrome.storage.local.set({ [CUSTOM_PROVIDERS_KEY]: normalized });
+  return normalized;
+}
+
+/**
+ * Which providers appear in the toolbar (1–max).
+ * Includes custom ids that still exist in customProviders.
  */
 export async function loadEnabledProviders(): Promise<ProviderId[]> {
-  const result = await chrome.storage.local.get(ENABLED_PROVIDERS_KEY);
-  return normalizeEnabledProviders(result[ENABLED_PROVIDERS_KEY]);
+  const result = await chrome.storage.local.get([
+    ENABLED_PROVIDERS_KEY,
+    CUSTOM_PROVIDERS_KEY,
+  ]);
+  const customs = normalizeCustomProviders(result[CUSTOM_PROVIDERS_KEY]);
+  return normalizeEnabledProviders(result[ENABLED_PROVIDERS_KEY], customs);
 }
 
 export async function saveEnabledProviders(
-  providers: ProviderId[]
+  providers: ProviderId[],
+  customProviders?: ProviderConfig[]
 ): Promise<ProviderId[]> {
-  const normalized = normalizeEnabledProviders(providers);
+  const customs =
+    customProviders !== undefined
+      ? normalizeCustomProviders(customProviders)
+      : await loadCustomProviders();
+  const normalized = normalizeEnabledProviders(providers, customs);
   await chrome.storage.local.set({ [ENABLED_PROVIDERS_KEY]: normalized });
   return normalized;
 }
@@ -157,3 +188,6 @@ export async function checkShortcutBound(
   const shortcut = match.shortcut?.trim() ?? "";
   return shortcut.length > 0 ? shortcut : null;
 }
+
+/** @deprecated Prefer isBuiltinProviderId — kept for any external callers */
+export { isBuiltinProviderId };

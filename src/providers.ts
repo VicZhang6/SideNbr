@@ -1,4 +1,21 @@
-export type ProviderId = "perplexity" | "chatgpt" | "deepseek" | "grok";
+import type { LobeIconId } from "./icons/iconCatalog";
+
+/** Built-in catalog ids (fixed set). */
+export type BuiltinProviderId =
+  | "perplexity"
+  | "chatgpt"
+  | "deepseek"
+  | "grok";
+
+/**
+ * Any provider id: builtin catalog or user-defined custom (`custom_*`).
+ */
+export type ProviderId = string;
+
+/** Icon descriptor for toolbar / settings (emoji or lobe brand mark). */
+export type ProviderIcon =
+  | { kind: "emoji"; value: string }
+  | { kind: "lobe"; value: LobeIconId | string };
 
 export interface ProviderConfig {
   id: ProviderId;
@@ -8,24 +25,34 @@ export interface ProviderConfig {
   embedUrl: string;
   externalUrl: string;
   allow: string;
+  /** Display icon (emoji or lobe brand); optional on older customs */
+  icon?: ProviderIcon;
+  /** True when user-defined (not in builtin catalog) */
+  custom?: boolean;
 }
 
-/** Fixed catalog order (also settings list order). */
-export const PROVIDER_ORDER: ProviderId[] = [
+export const DEFAULT_CUSTOM_ALLOW =
+  "clipboard-read; clipboard-write; microphone";
+
+const DEFAULT_EMOJI_ICON: ProviderIcon = { kind: "emoji", value: "✨" };
+
+/** Fixed catalog order (also settings list order for builtins). */
+export const PROVIDER_ORDER: BuiltinProviderId[] = [
   "perplexity",
   "chatgpt",
   "deepseek",
   "grok",
 ];
 
-export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
+export const PROVIDERS: Record<BuiltinProviderId, ProviderConfig> = {
   perplexity: {
     id: "perplexity",
     label: "Perplexity",
     shortLabel: "Perplexity",
     embedUrl: "https://www.perplexity.ai/sidecar",
     externalUrl: "https://www.perplexity.ai/",
-    allow: "clipboard-read; clipboard-write; microphone",
+    allow: DEFAULT_CUSTOM_ALLOW,
+    icon: { kind: "lobe", value: "perplexity" },
   },
   chatgpt: {
     id: "chatgpt",
@@ -33,7 +60,8 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     shortLabel: "ChatGPT",
     embedUrl: "https://chatgpt.com/",
     externalUrl: "https://chatgpt.com/",
-    allow: "clipboard-read; clipboard-write; microphone",
+    allow: DEFAULT_CUSTOM_ALLOW,
+    icon: { kind: "lobe", value: "openai" },
   },
   deepseek: {
     id: "deepseek",
@@ -41,7 +69,8 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     shortLabel: "DeepSeek",
     embedUrl: "https://chat.deepseek.com/",
     externalUrl: "https://chat.deepseek.com/",
-    allow: "clipboard-read; clipboard-write; microphone",
+    allow: DEFAULT_CUSTOM_ALLOW,
+    icon: { kind: "lobe", value: "deepseek" },
   },
   grok: {
     id: "grok",
@@ -49,19 +78,22 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     shortLabel: "Grok",
     embedUrl: "https://grok.com/",
     externalUrl: "https://grok.com/",
-    allow: "clipboard-read; clipboard-write; microphone",
+    allow: DEFAULT_CUSTOM_ALLOW,
+    icon: { kind: "lobe", value: "grok" },
   },
 };
 
 export const DEFAULT_PROVIDER: ProviderId = "perplexity";
 
-/** Default: all four enabled (user can turn off in settings; min 1, max 4). */
+/** Default: all four builtins enabled (user can turn off in settings; min 1). */
 export const DEFAULT_ENABLED_PROVIDERS: ProviderId[] = [...PROVIDER_ORDER];
 
 export const MIN_ENABLED_PROVIDERS = 1;
 export const MAX_ENABLED_PROVIDERS = 4;
 
-export function isProviderId(value: unknown): value is ProviderId {
+export function isBuiltinProviderId(
+  value: unknown
+): value is BuiltinProviderId {
   return (
     value === "perplexity" ||
     value === "chatgpt" ||
@@ -70,31 +102,200 @@ export function isProviderId(value: unknown): value is ProviderId {
   );
 }
 
-export function orderedProviders(
-  ids: Iterable<ProviderId>
-): ProviderConfig[] {
-  const set = new Set(ids);
-  return PROVIDER_ORDER.filter((id) => set.has(id)).map((id) => PROVIDERS[id]);
+/** Non-empty string id (builtin or custom). */
+export function isProviderId(value: unknown): value is ProviderId {
+  return typeof value === "string" && value.length > 0 && value.length < 128;
+}
+
+function normalizeIcon(raw: unknown): ProviderIcon {
+  if (!raw || typeof raw !== "object") return DEFAULT_EMOJI_ICON;
+  const o = raw as Record<string, unknown>;
+  if (o.kind === "emoji" && typeof o.value === "string" && o.value.trim()) {
+    return { kind: "emoji", value: o.value.trim().slice(0, 8) };
+  }
+  if (o.kind === "lobe" && typeof o.value === "string" && o.value.trim()) {
+    return { kind: "lobe", value: o.value.trim() };
+  }
+  return DEFAULT_EMOJI_ICON;
 }
 
 /**
- * Normalize enabled list: unique, known ids, catalog order, clamp to [min, max].
+ * Resolve a provider id against the builtin catalog and custom list.
+ * Builtins always win over a custom entry with the same id.
+ */
+export function resolveProvider(
+  id: string,
+  customProviders: readonly ProviderConfig[] = []
+): ProviderConfig | undefined {
+  if (isBuiltinProviderId(id)) {
+    return PROVIDERS[id];
+  }
+  return customProviders.find((p) => p.id === id);
+}
+
+function newCustomId(): string {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return `custom_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
+    }
+  } catch {
+    // fall through
+  }
+  return `custom_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/**
+ * Create a validated custom provider config.
+ * Throws if name/url invalid (caller shows form error).
+ */
+export function createCustomProvider(input: {
+  label: string;
+  url: string;
+  icon?: ProviderIcon;
+}): ProviderConfig {
+  const label = input.label.trim();
+  if (!label) {
+    throw new Error("invalid name");
+  }
+
+  const rawUrl = input.url.trim();
+  let href: string;
+  try {
+    const u = new URL(rawUrl);
+    if (u.protocol !== "http:" && u.protocol !== "https:") {
+      throw new Error("invalid url");
+    }
+    href = u.href;
+  } catch {
+    throw new Error("invalid url");
+  }
+
+  const shortLabel = label.length > 14 ? `${label.slice(0, 13)}…` : label;
+
+  return {
+    id: newCustomId(),
+    label,
+    shortLabel,
+    embedUrl: href,
+    externalUrl: href,
+    allow: DEFAULT_CUSTOM_ALLOW,
+    icon: normalizeIcon(input.icon ?? DEFAULT_EMOJI_ICON),
+    custom: true,
+  };
+}
+
+/**
+ * Validate / normalize stored custom provider configs.
+ * Drops builtins, invalid URLs, and duplicates.
+ */
+export function normalizeCustomProviders(raw: unknown): ProviderConfig[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ProviderConfig[] = [];
+  const seen = new Set<string>();
+
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+
+    const id = typeof o.id === "string" ? o.id.trim() : "";
+    if (!id || isBuiltinProviderId(id) || seen.has(id) || !isProviderId(id)) {
+      continue;
+    }
+
+    const label = typeof o.label === "string" ? o.label.trim() : "";
+    if (!label) continue;
+
+    const embedUrl = typeof o.embedUrl === "string" ? o.embedUrl.trim() : "";
+    if (!embedUrl) continue;
+    try {
+      const u = new URL(embedUrl);
+      if (u.protocol !== "https:" && u.protocol !== "http:") continue;
+    } catch {
+      continue;
+    }
+
+    const externalRaw =
+      typeof o.externalUrl === "string" ? o.externalUrl.trim() : "";
+    let externalUrl = externalRaw || embedUrl;
+    try {
+      const u = new URL(externalUrl);
+      if (u.protocol !== "https:" && u.protocol !== "http:") {
+        externalUrl = embedUrl;
+      }
+    } catch {
+      externalUrl = embedUrl;
+    }
+
+    const shortLabel =
+      typeof o.shortLabel === "string" && o.shortLabel.trim()
+        ? o.shortLabel.trim()
+        : label.length > 14
+          ? `${label.slice(0, 13)}…`
+          : label;
+
+    const allow =
+      typeof o.allow === "string" && o.allow.trim()
+        ? o.allow.trim()
+        : DEFAULT_CUSTOM_ALLOW;
+
+    seen.add(id);
+    out.push({
+      id,
+      label,
+      shortLabel,
+      embedUrl,
+      externalUrl,
+      allow,
+      icon: normalizeIcon(o.icon),
+      custom: true,
+    });
+  }
+
+  return out;
+}
+
+export function orderedProviders(
+  ids: Iterable<ProviderId>,
+  customProviders: readonly ProviderConfig[] = []
+): ProviderConfig[] {
+  const set = new Set(ids);
+  const result: ProviderConfig[] = [];
+  for (const id of PROVIDER_ORDER) {
+    if (set.has(id)) result.push(PROVIDERS[id]);
+  }
+  for (const c of customProviders) {
+    if (set.has(c.id)) result.push(c);
+  }
+  return result;
+}
+
+/**
+ * Normalize enabled list: unique, known ids (builtin or listed custom),
+ * builtins in catalog order then customs in customProviders order,
+ * clamp to [min, max].
  */
 export function normalizeEnabledProviders(
-  raw: unknown
+  raw: unknown,
+  customProviders: readonly ProviderConfig[] = []
 ): ProviderId[] {
-  const seen = new Set<ProviderId>();
-  const list: ProviderId[] = [];
+  const customIds = new Set(customProviders.map((p) => p.id));
+  const isKnown = (id: string) =>
+    isBuiltinProviderId(id) || customIds.has(id);
+
+  const seen = new Set<string>();
   if (Array.isArray(raw)) {
     for (const item of raw) {
-      if (isProviderId(item) && !seen.has(item)) {
+      if (typeof item === "string" && isKnown(item) && !seen.has(item)) {
         seen.add(item);
-        list.push(item);
       }
     }
   }
-  // Reorder by catalog
-  let ordered = PROVIDER_ORDER.filter((id) => seen.has(id));
+
+  let ordered: ProviderId[] = [
+    ...PROVIDER_ORDER.filter((id) => seen.has(id)),
+    ...customProviders.map((p) => p.id).filter((id) => seen.has(id)),
+  ];
+
   if (ordered.length === 0) {
     ordered = [...DEFAULT_ENABLED_PROVIDERS];
   }

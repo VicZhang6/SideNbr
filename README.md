@@ -37,7 +37,7 @@ Full install steps: [docs/DOWNLOAD.md](./docs/DOWNLOAD.md).
 
 - **Keyboard shortcut** — open / close the side panel in one keystroke (customizable in Chrome)
 - **Provider switch** — Perplexity / ChatGPT / DeepSeek / Grok with brand icons
-- **Enable 1–4 providers** — choose which services appear in the toolbar (settings)
+- **Enable 1–4 tabs** — built-in AIs and/or **custom** sites (name, URL, emoji/brand icon)
 - **Keep-alive on switch** — already opened providers stay mounted; no full reload on every switch
 - **Refresh** — reload the current iframe
 - **Open official site** — open the provider’s official site in a new tab
@@ -230,7 +230,7 @@ Repository: [https://github.com/VicZhang6/SideNbr](https://github.com/VicZhang6/
 
 - **键盘快捷键** — 一键打开 / 关闭侧栏（可在 Chrome 中自定义）
 - **服务商切换** — Perplexity / ChatGPT / DeepSeek / Grok，带品牌图标
-- **启用 1–4 个服务** — 在设置中选择工具栏显示的服务商
+- **启用 1–4 个标签** — 内置 AI 和/或**自定义**站点（名称、网址、emoji/品牌图标）
 - **切换保活** — 已打开的服务在切换时不销毁 iframe，避免反复加载
 - **刷新** — 重新加载当前 iframe
 - **打开官网** — 在新标签页打开对应官方站点

@@ -2,30 +2,38 @@ import { useEffect, useState } from "react";
 import {
   DEFAULT_ENABLED_PROVIDERS,
   DEFAULT_PROVIDER,
-  PROVIDERS,
   isProviderId,
+  normalizeCustomProviders,
   normalizeEnabledProviders,
+  resolveProvider,
+  type ProviderConfig,
   type ProviderId,
 } from "./providers";
-import { loadActiveProvider, loadEnabledProviders } from "./storage";
+import {
+  loadActiveProvider,
+  loadCustomProviders,
+  loadEnabledProviders,
+} from "./storage";
 import { MSG } from "./messages";
 import { ProviderFrame } from "./components/ProviderFrame";
 
 /**
  * Minimal full-viewport host for background keep-alive.
- * Mounts all enabled providers immediately (warm iframes).
+ * Mounts all enabled providers immediately (warm iframes), including customs.
  * No toolbar — pure iframe stage only.
  */
 export default function SessionHostApp() {
   const [active, setActive] = useState<ProviderId>(DEFAULT_PROVIDER);
   const [enabled, setEnabled] = useState<ProviderId[]>(DEFAULT_ENABLED_PROVIDERS);
+  const [customProviders, setCustomProviders] = useState<ProviderConfig[]>([]);
 
   // Bootstrap from chrome.storage — mount ALL enabled for warm keep-alive.
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      const [enabledList, lastActive] = await Promise.all([
+      const [customs, enabledList, lastActive] = await Promise.all([
+        loadCustomProviders(),
         loadEnabledProviders(),
         loadActiveProvider(),
       ]);
@@ -35,6 +43,7 @@ export default function SessionHostApp() {
         ? lastActive
         : (enabledList[0] ?? DEFAULT_PROVIDER);
 
+      setCustomProviders(customs);
       setEnabled(enabledList);
       setActive(nextActive);
     })();
@@ -44,7 +53,7 @@ export default function SessionHostApp() {
     };
   }, []);
 
-  // storage.onChanged: enabledProviders + activeProvider
+  // storage.onChanged: customProviders + enabledProviders + activeProvider
   useEffect(() => {
     const onChanged = (
       changes: { [key: string]: chrome.storage.StorageChange },
@@ -52,16 +61,36 @@ export default function SessionHostApp() {
     ) => {
       if (areaName !== "local") return;
 
+      if (changes.customProviders) {
+        const nextCustoms = normalizeCustomProviders(
+          changes.customProviders.newValue
+        );
+        setCustomProviders(nextCustoms);
+        setEnabled((prev) => {
+          const nextEnabled = normalizeEnabledProviders(prev, nextCustoms);
+          setActive((prevActive) =>
+            nextEnabled.includes(prevActive)
+              ? prevActive
+              : (nextEnabled[0] ?? DEFAULT_PROVIDER)
+          );
+          return nextEnabled;
+        });
+      }
+
       if (changes.enabledProviders) {
-        const nextEnabled = normalizeEnabledProviders(
-          changes.enabledProviders.newValue
-        );
-        setEnabled(nextEnabled);
-        setActive((prev) =>
-          nextEnabled.includes(prev)
-            ? prev
-            : (nextEnabled[0] ?? DEFAULT_PROVIDER)
-        );
+        setCustomProviders((customs) => {
+          const nextEnabled = normalizeEnabledProviders(
+            changes.enabledProviders.newValue,
+            customs
+          );
+          setEnabled(nextEnabled);
+          setActive((prev) =>
+            nextEnabled.includes(prev)
+              ? prev
+              : (nextEnabled[0] ?? DEFAULT_PROVIDER)
+          );
+          return customs;
+        });
       }
 
       if (changes.activeProvider) {
@@ -78,7 +107,7 @@ export default function SessionHostApp() {
     };
   }, []);
 
-  // runtime messages: SYNC_PROVIDERS { enabled, active }
+  // runtime messages: SYNC_PROVIDERS { enabled, active } — string ids
   useEffect(() => {
     const onMessage = (
       message: unknown,
@@ -96,15 +125,18 @@ export default function SessionHostApp() {
       if (msg.type !== MSG.SYNC_PROVIDERS) return;
 
       if (msg.enabled !== undefined) {
-        const nextEnabled = normalizeEnabledProviders(msg.enabled);
-        setEnabled(nextEnabled);
-        setActive((prev) => {
-          if (isProviderId(msg.active) && nextEnabled.includes(msg.active)) {
-            return msg.active;
-          }
-          return nextEnabled.includes(prev)
-            ? prev
-            : (nextEnabled[0] ?? DEFAULT_PROVIDER);
+        setCustomProviders((customs) => {
+          const nextEnabled = normalizeEnabledProviders(msg.enabled, customs);
+          setEnabled(nextEnabled);
+          setActive((prev) => {
+            if (isProviderId(msg.active) && nextEnabled.includes(msg.active)) {
+              return msg.active;
+            }
+            return nextEnabled.includes(prev)
+              ? prev
+              : (nextEnabled[0] ?? DEFAULT_PROVIDER);
+          });
+          return customs;
         });
       } else if (isProviderId(msg.active)) {
         setActive(msg.active);
@@ -120,17 +152,21 @@ export default function SessionHostApp() {
   return (
     <div className="app session-host-app">
       <main className="frame-stage" aria-label="SideNbr background session host">
-        {enabled.map((id) => (
-          <ProviderFrame
-            key={id}
-            provider={PROVIDERS[id]}
-            active={id === active}
-            reloadToken={0}
-            onLoad={() => {
-              /* keep-alive host: no loading chrome */
-            }}
-          />
-        ))}
+        {enabled.map((id) => {
+          const provider = resolveProvider(id, customProviders);
+          if (!provider) return null;
+          return (
+            <ProviderFrame
+              key={id}
+              provider={provider}
+              active={id === active}
+              reloadToken={0}
+              onLoad={() => {
+                /* keep-alive host: no loading chrome */
+              }}
+            />
+          );
+        })}
       </main>
 
       <div

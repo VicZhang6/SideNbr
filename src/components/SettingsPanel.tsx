@@ -1,3 +1,23 @@
+/**
+ * SettingsPanel props contract (App owns state — single source of truth):
+ *
+ * ```tsx
+ * export interface SettingsPanelProps {
+ *   open: boolean;
+ *   onClose: () => void;
+ *   enabledProviders: string[]; // ProviderId (builtin + custom_*)
+ *   onEnabledChange: (next: string[]) => void | Promise<void>;
+ *   customProviders: ProviderConfig[];
+ *   onCustomProvidersChange: (next: ProviderConfig[]) => void | Promise<void>;
+ * }
+ * ```
+ *
+ * Enable rules: min 1, max 4 total (builtin + custom combined).
+ * Delete custom → remove from customs and from enabled via callbacks.
+ *
+ * Custom entries may carry an optional `icon` token
+ * (`{ kind: "emoji" | "lobe", value }`) alongside optional `iconUrl`.
+ */
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ExternalLink,
@@ -8,19 +28,26 @@ import {
   Layers2,
   Monitor,
   Moon,
+  Plus,
   RefreshCw,
   Sun,
+  Trash2,
   X,
 } from "lucide-react";
 import { PRODUCT_NAME, REPO_LABEL, REPO_URL } from "../constants";
 import {
+  DEFAULT_CUSTOM_ALLOW,
+  isBuiltinProviderId,
   MAX_ENABLED_PROVIDERS,
   MIN_ENABLED_PROVIDERS,
   PROVIDER_ORDER,
   PROVIDERS,
-  type ProviderId,
+  type ProviderConfig,
 } from "../providers";
-import { ProviderBrandIcon } from "../icons/providerIcons";
+import {
+  ProviderIconView,
+  type ProviderIcon,
+} from "../icons/providerIcons";
 import { useI18n, type LocaleMode } from "../i18n";
 import { useTheme } from "../theme";
 import { loadPersistSessions, savePersistSessions } from "../storage";
@@ -35,16 +62,77 @@ import {
   SHORTCUTS_URL,
   type CommandInfo,
 } from "../shortcuts";
+import { DEFAULT_CUSTOM_ICON, IconPicker } from "./IconPicker";
 
 export interface SettingsPanelProps {
   open: boolean;
   onClose: () => void;
-  enabledProviders: ProviderId[];
-  onEnabledChange: (next: ProviderId[]) => void | Promise<void>;
+  enabledProviders: string[];
+  onEnabledChange: (next: string[]) => void | Promise<void>;
+  customProviders: ProviderConfig[];
+  onCustomProvidersChange: (next: ProviderConfig[]) => void | Promise<void>;
 }
+
+/** ProviderConfig plus optional picker icon token (may be persisted by App). */
+type CustomProvider = ProviderConfig & { icon?: ProviderIcon };
 
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function isValidHttpUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw.trim());
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function truncateUrl(url: string, max = 34): string {
+  const s = url.trim();
+  if (s.length <= max) return s;
+  return `${s.slice(0, Math.max(1, max - 1))}…`;
+}
+
+function newCustomId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `custom_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
+  }
+  return `custom_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** Inline create (providers.createCustomProvider not always available). */
+function createCustomProvider(input: {
+  label: string;
+  url: string;
+  icon: ProviderIcon;
+}): CustomProvider {
+  const label = input.label.trim();
+  const url = input.url.trim();
+  return {
+    id: newCustomId(),
+    label,
+    shortLabel: label.slice(0, 12) || "Custom",
+    embedUrl: url,
+    externalUrl: url,
+    allow: DEFAULT_CUSTOM_ALLOW,
+    custom: true,
+    icon: input.icon,
+  };
+}
+
+function readIcon(p: ProviderConfig): ProviderIcon | undefined {
+  const icon = (p as CustomProvider).icon;
+  if (
+    icon &&
+    (icon.kind === "emoji" || icon.kind === "lobe") &&
+    typeof icon.value === "string" &&
+    icon.value
+  ) {
+    return icon;
+  }
+  return undefined;
+}
 
 async function openRepo(): Promise<void> {
   try {
@@ -59,13 +147,16 @@ async function openRepo(): Promise<void> {
 }
 
 /**
- * Settings centered modal: provider enable toggles (1–4), shortcuts, open-source link.
+ * Settings centered modal: provider enable toggles (1–4), custom services,
+ * shortcuts, open-source link.
  */
 export function SettingsPanel({
   open,
   onClose,
   enabledProviders,
   onEnabledChange,
+  customProviders,
+  onCustomProvidersChange,
 }: SettingsPanelProps) {
   const { t, localeMode, setLocaleMode } = useI18n();
   const { themeMode, setThemeMode } = useTheme();
@@ -76,13 +167,29 @@ export function SettingsPanel({
   const [toggleHint, setToggleHint] = useState<string | null>(null);
   const [persistSessions, setPersistSessions] = useState(false);
 
+  const [addingCustom, setAddingCustom] = useState(false);
+  const [customName, setCustomName] = useState("");
+  const [customUrl, setCustomUrl] = useState("");
+  const [customIcon, setCustomIcon] =
+    useState<ProviderIcon>(DEFAULT_CUSTOM_ICON);
+  const [formError, setFormError] = useState<string | null>(null);
+
   const panelRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const unboundLabel = t("shortcut.unbound");
   const enabledSet = new Set(enabledProviders);
   const enabledCount = enabledProviders.length;
+
+  const resetCustomForm = useCallback(() => {
+    setAddingCustom(false);
+    setCustomName("");
+    setCustomUrl("");
+    setCustomIcon(DEFAULT_CUSTOM_ICON);
+    setFormError(null);
+  }, []);
 
   const refresh = useCallback(async () => {
     setBusy(true);
@@ -105,6 +212,7 @@ export function SettingsPanel({
     if (!open) return;
     void refresh();
     setToggleHint(null);
+    resetCustomForm();
     void loadPersistSessions().then(setPersistSessions);
 
     const onVis = () => {
@@ -116,7 +224,13 @@ export function SettingsPanel({
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("focus", onVis);
     };
-  }, [open, refresh]);
+  }, [open, refresh, resetCustomForm]);
+
+  useEffect(() => {
+    if (!open || !addingCustom) return;
+    const timer = window.setTimeout(() => nameInputRef.current?.focus(), 0);
+    return () => window.clearTimeout(timer);
+  }, [open, addingCustom]);
 
   const togglePersistSessions = useCallback(async () => {
     const next = !persistSessions;
@@ -132,12 +246,10 @@ export function SettingsPanel({
         })
         .catch(() => {});
     } catch {
-      // Revert UI if save failed
       setPersistSessions(!next);
     }
   }, [persistSessions]);
 
-  // Body scroll lock + focus open/restore while modal is open
   useEffect(() => {
     if (!open) return;
 
@@ -149,7 +261,6 @@ export function SettingsPanel({
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    // Focus close button (or first focusable) after paint
     const focusTimer = window.setTimeout(() => {
       const target =
         closeBtnRef.current ??
@@ -169,13 +280,16 @@ export function SettingsPanel({
     };
   }, [open]);
 
-  // Escape to close + simple Tab focus trap within dialog
   useEffect(() => {
     if (!open) return;
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
+        if (addingCustom) {
+          resetCustomForm();
+          return;
+        }
         onClose();
         return;
       }
@@ -208,7 +322,7 @@ export function SettingsPanel({
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, onClose, addingCustom, resetCustomForm]);
 
   const handleConfigure = async () => {
     setBusy(true);
@@ -222,7 +336,7 @@ export function SettingsPanel({
     }
   };
 
-  const toggleProvider = (id: ProviderId) => {
+  const toggleProvider = (id: string) => {
     const isOn = enabledSet.has(id);
     if (isOn) {
       if (enabledCount <= MIN_ENABLED_PROVIDERS) {
@@ -231,9 +345,8 @@ export function SettingsPanel({
         );
         return;
       }
-      const next = enabledProviders.filter((p) => p !== id);
       setToggleHint(null);
-      void onEnabledChange(next);
+      void onEnabledChange(enabledProviders.filter((p) => p !== id));
       return;
     }
     if (enabledCount >= MAX_ENABLED_PROVIDERS) {
@@ -242,12 +355,51 @@ export function SettingsPanel({
       );
       return;
     }
-    // Preserve catalog order when enabling
-    const next = PROVIDER_ORDER.filter(
-      (p) => p === id || enabledSet.has(p)
-    );
+    const nextSet = new Set([...enabledProviders, id]);
+    const builtins = PROVIDER_ORDER.filter((p) => nextSet.has(p));
+    const customIds: string[] = [];
+    for (const p of enabledProviders) {
+      if (!isBuiltinProviderId(p) && nextSet.has(p) && !customIds.includes(p)) {
+        customIds.push(p);
+      }
+    }
+    if (!isBuiltinProviderId(id) && !customIds.includes(id)) {
+      customIds.push(id);
+    }
     setToggleHint(null);
-    void onEnabledChange(next);
+    void onEnabledChange([...builtins, ...customIds]);
+  };
+
+  const handleDeleteCustom = (id: string) => {
+    void onCustomProvidersChange(
+      customProviders.filter((c) => c.id !== id)
+    );
+    if (enabledSet.has(id)) {
+      void onEnabledChange(enabledProviders.filter((p) => p !== id));
+    }
+    setToggleHint(null);
+  };
+
+  const handleSaveCustom = () => {
+    const name = customName.trim();
+    if (!name) {
+      setFormError(t("settings.customInvalidName"));
+      return;
+    }
+    if (!isValidHttpUrl(customUrl)) {
+      setFormError(t("settings.customInvalidUrl"));
+      return;
+    }
+    const created = createCustomProvider({
+      label: name,
+      url: customUrl,
+      icon: customIcon,
+    });
+    void onCustomProvidersChange([
+      ...customProviders,
+      created as ProviderConfig,
+    ]);
+    resetCustomForm();
   };
 
   if (!open) return null;
@@ -390,9 +542,11 @@ export function SettingsPanel({
                 <li key={id} className="settings-provider-list__item">
                   <span className="settings-provider-list__meta">
                     <span className="settings-provider-list__icon" aria-hidden>
-                      <ProviderBrandIcon id={id} size={16} />
+                      <ProviderIconView config={p} size={16} />
                     </span>
-                    <span className="settings-provider-list__name">{p.label}</span>
+                    <span className="settings-provider-list__name">
+                      {p.label}
+                    </span>
                   </span>
                   <button
                     type="button"
@@ -404,9 +558,7 @@ export function SettingsPanel({
                         : t("settings.enable", { label: p.label })
                     }
                     className={
-                      on
-                        ? "settings-switch is-on"
-                        : "settings-switch"
+                      on ? "settings-switch is-on" : "settings-switch"
                     }
                     onClick={() => toggleProvider(id)}
                   >
@@ -421,6 +573,162 @@ export function SettingsPanel({
               {toggleHint}
             </p>
           ) : null}
+        </section>
+
+        <section className="settings-section">
+          <div className="settings-section__label">
+            <Plus size={14} strokeWidth={2} aria-hidden />
+            <span>{t("settings.customTitle")}</span>
+          </div>
+
+          {customProviders.length === 0 && !addingCustom ? (
+            <p className="settings-footnote settings-footnote--tight">
+              {t("settings.customEmpty")}
+            </p>
+          ) : null}
+
+          {customProviders.length > 0 ? (
+            <ul className="settings-provider-list">
+              {customProviders.map((p) => {
+                const on = enabledSet.has(p.id);
+                const url = p.embedUrl || p.externalUrl;
+                return (
+                  <li key={p.id} className="settings-provider-list__item">
+                    <span className="settings-provider-list__meta settings-provider-list__meta--custom">
+                      <span
+                        className="settings-provider-list__icon"
+                        aria-hidden
+                      >
+                        <ProviderIconView
+                          config={p}
+                          icon={readIcon(p)}
+                          size={16}
+                        />
+                      </span>
+                      <span className="settings-provider-list__text">
+                        <span className="settings-provider-list__name">
+                          {p.label}
+                        </span>
+                        <span
+                          className="settings-provider-list__url"
+                          title={url}
+                        >
+                          {truncateUrl(url)}
+                        </span>
+                      </span>
+                    </span>
+                    <span className="settings-provider-list__actions">
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={on}
+                        aria-label={
+                          on
+                            ? t("settings.disable", { label: p.label })
+                            : t("settings.enable", { label: p.label })
+                        }
+                        className={
+                          on ? "settings-switch is-on" : "settings-switch"
+                        }
+                        onClick={() => toggleProvider(p.id)}
+                      >
+                        <span className="settings-switch__knob" />
+                      </button>
+                      <button
+                        type="button"
+                        className="settings-icon-btn"
+                        title={t("settings.customDelete")}
+                        aria-label={t("settings.customDelete")}
+                        onClick={() => handleDeleteCustom(p.id)}
+                      >
+                        <Trash2 size={14} strokeWidth={2} aria-hidden />
+                      </button>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+
+          {addingCustom ? (
+            <div className="settings-custom-form">
+              <label className="settings-field">
+                <span className="settings-field__label">
+                  {t("settings.customName")}
+                </span>
+                <input
+                  ref={nameInputRef}
+                  type="text"
+                  className="settings-field__input"
+                  value={customName}
+                  onChange={(e) => {
+                    setCustomName(e.target.value);
+                    setFormError(null);
+                  }}
+                  autoComplete="off"
+                  maxLength={48}
+                />
+              </label>
+              <label className="settings-field">
+                <span className="settings-field__label">
+                  {t("settings.customUrl")}
+                </span>
+                <input
+                  type="url"
+                  className="settings-field__input"
+                  value={customUrl}
+                  onChange={(e) => {
+                    setCustomUrl(e.target.value);
+                    setFormError(null);
+                  }}
+                  placeholder="https://"
+                  autoComplete="off"
+                  inputMode="url"
+                />
+              </label>
+              <div className="settings-field">
+                <span className="settings-field__label">
+                  {t("settings.customIcon")}
+                </span>
+                <IconPicker value={customIcon} onChange={setCustomIcon} />
+              </div>
+              {formError ? (
+                <p className="settings-status" role="status">
+                  {formError}
+                </p>
+              ) : null}
+              <div className="settings-actions">
+                <button
+                  type="button"
+                  className="settings-btn settings-btn--primary"
+                  onClick={handleSaveCustom}
+                >
+                  {t("settings.customSave")}
+                </button>
+                <button
+                  type="button"
+                  className="settings-btn"
+                  onClick={resetCustomForm}
+                >
+                  {t("settings.customCancel")}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="settings-actions">
+              <button
+                type="button"
+                className="settings-btn"
+                onClick={() => {
+                  setAddingCustom(true);
+                  setFormError(null);
+                }}
+              >
+                <Plus size={14} strokeWidth={2} aria-hidden />
+                {t("settings.customAdd")}
+              </button>
+            </div>
+          )}
         </section>
 
         <section className="settings-section">
@@ -521,7 +829,9 @@ export function SettingsPanel({
               {commands.map((c) => (
                 <li key={c.name} className="settings-cmd-list__item">
                   <span>{c.description || c.name}</span>
-                  <code>{formatShortcut(c.shortcut || null, unboundLabel)}</code>
+                  <code>
+                    {formatShortcut(c.shortcut || null, unboundLabel)}
+                  </code>
                 </li>
               ))}
             </ul>

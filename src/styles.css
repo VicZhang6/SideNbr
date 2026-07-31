@@ -877,6 +877,178 @@ body {
   color: var(--text-strong);
 }
 
+.settings-provider-list__meta--custom {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.settings-provider-list__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.settings-provider-list__url {
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-provider-list__actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.settings-icon-btn:hover {
+  background: var(--ghost-hover-bg);
+  border-color: var(--border-subtle);
+  color: var(--text-strong);
+}
+
+.settings-icon-btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* Custom service form */
+.settings-custom-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--card-gradient);
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-field__label {
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.settings-field__input {
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-strong);
+  font: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.settings-field__input:focus {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+  border-color: var(--primary);
+}
+
+.settings-field__input::placeholder {
+  color: var(--text-faint);
+}
+
+/* Icon picker (custom services) */
+.icon-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.icon-picker__group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.icon-picker__group-label {
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.icon-picker__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.icon-picker__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-strong);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.icon-picker__btn:hover {
+  background: var(--bg);
+  border-color: var(--border-hover);
+}
+
+.icon-picker__btn.is-selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+  background: var(--primary-soft);
+}
+
+.icon-picker__btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.icon-picker__emoji {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.provider-icon-emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* iOS-like switch */
 .settings-switch {
   position: relative;

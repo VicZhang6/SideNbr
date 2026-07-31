@@ -97,3 +97,75 @@ export function GrokIcon({
     </svg>
   );
 }
+
+/** Claude / Anthropic (simple monochrome starburst) */
+export function ClaudeIcon({
+  size = 16,
+  title = "Claude",
+  ...rest
+}: IconProps) {
+  return (
+    <svg
+      {...baseProps(size, rest)}
+      fill="currentColor"
+      aria-hidden={title ? undefined : true}
+    >
+      {title ? <title>{title}</title> : null}
+      <path d="M12.9 2.1c-.25-.7-1.25-.7-1.5 0L9.6 7.4 4.2 6.3c-.72-.15-1.22.7-.75 1.3l4 4.6-2.3 5.4c-.28.68.45 1.32 1.08.95L12 15.4l5.77 3.15c.63.37 1.36-.27 1.08-.95l-2.3-5.4 4-4.6c.47-.6-.03-1.45-.75-1.3l-5.4 1.1L12.9 2.1z" />
+    </svg>
+  );
+}
+
+/** Gemini (simple monochrome 4-point star) */
+export function GeminiIcon({
+  size = 16,
+  title = "Gemini",
+  ...rest
+}: IconProps) {
+  return (
+    <svg
+      {...baseProps(size, rest)}
+      fill="currentColor"
+      aria-hidden={title ? undefined : true}
+    >
+      {title ? <title>{title}</title> : null}
+      <path d="M12 2c.2 4.8 3.2 8.8 10 10-6.8 1.2-9.8 5.2-10 10-.2-4.8-3.2-8.8-10-10 6.8-1.2 9.8-5.2 10-10z" />
+    </svg>
+  );
+}
+
+/** Meta (simple monochrome infinity-style mark) */
+export function MetaIcon({
+  size = 16,
+  title = "Meta",
+  ...rest
+}: IconProps) {
+  return (
+    <svg
+      {...baseProps(size, rest)}
+      fill="currentColor"
+      aria-hidden={title ? undefined : true}
+    >
+      {title ? <title>{title}</title> : null}
+      <path d="M12 7.2c1.7-2.4 3.7-3.7 5.6-3.7 3.1 0 5.4 2.7 5.4 6.5 0 4.2-2.7 8.5-5.8 8.5-1.7 0-3.2-1-4.7-3.1C11 17.5 9.5 18.5 7.8 18.5 4.7 18.5 2 14.2 2 10c0-3.8 2.3-6.5 5.4-6.5 1.9 0 3.9 1.3 5.6 3.7zm-1.5 2.1C9.1 7.3 7.6 6.2 6.4 6.2c-1.9 0-3.2 1.9-3.2 4.3 0 3 1.8 6.3 3.6 6.3 1 0 2.1-.8 3.7-3.2V9.3zm3 4.3c1.6 2.4 2.7 3.2 3.7 3.2 1.8 0 3.6-3.3 3.6-6.3 0-2.4-1.3-4.3-3.2-4.3-1.2 0-2.7 1.1-4.1 3.1v4.3z" />
+    </svg>
+  );
+}
+
+/** Generic service mark (simple monochrome chat bubble) */
+export function GenericIcon({
+  size = 16,
+  title = "Generic",
+  ...rest
+}: IconProps) {
+  return (
+    <svg
+      {...baseProps(size, rest)}
+      fill="currentColor"
+      aria-hidden={title ? undefined : true}
+    >
+      {title ? <title>{title}</title> : null}
+      <path d="M4 4.75A2.75 2.75 0 016.75 2h10.5A2.75 2.75 0 0120 4.75v9.5A2.75 2.75 0 0117.25 17H9.1l-3.55 3.2A.9.9 0 014 19.55V4.75zM8 8.25a.75.75 0 000 1.5h8a.75.75 0 000-1.5H8zm0 3.5a.75.75 0 000 1.5h5a.75.75 0 000-1.5H8z" />
+    </svg>
+  );
+}

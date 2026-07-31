@@ -1,13 +1,14 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import type { ProviderId } from "../providers";
-import { PROVIDERS } from "../providers";
-import { ProviderBrandIcon } from "../icons/providerIcons";
+import type { ProviderConfig, ProviderId } from "../providers";
+import { ProviderIconView } from "../icons/providerIcons";
 import { useI18n } from "../i18n";
 
 export interface ProviderSelectorProps {
   value: ProviderId;
-  /** Enabled providers in catalog order (1–4). */
+  /** Enabled provider ids (builtin + custom) in display order. */
   options: ProviderId[];
+  /** Resolve id → config (builtin catalog or custom). */
+  getProvider: (id: string) => ProviderConfig | undefined;
   onChange: (id: ProviderId) => void;
   disabled?: boolean;
 }
@@ -19,6 +20,7 @@ export interface ProviderSelectorProps {
 export function ProviderSelector({
   value,
   options,
+  getProvider,
   onChange,
   disabled = false,
 }: ProviderSelectorProps) {
@@ -68,7 +70,7 @@ export function ProviderSelector({
     return () => {
       ro.disconnect();
     };
-  }, [options, value]);
+  }, [options, value, getProvider]);
 
   return (
     <div
@@ -82,7 +84,8 @@ export function ProviderSelector({
       aria-label={t("providerSelect.aria")}
     >
       {options.map((id) => {
-        const provider = PROVIDERS[id];
+        const provider = getProvider(id);
+        if (!provider) return null;
         const selected = id === value;
         return (
           <button
@@ -101,7 +104,7 @@ export function ProviderSelector({
             aria-label={provider.label}
           >
             <span className="provider-selector__icon" aria-hidden>
-              <ProviderBrandIcon id={id} size={15} />
+              <ProviderIconView config={provider} size={15} />
             </span>
             <span className="provider-selector__label">{provider.shortLabel}</span>
           </button>

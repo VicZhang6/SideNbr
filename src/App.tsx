@@ -3,15 +3,19 @@ import { ExternalLink, RefreshCw, Settings } from "lucide-react";
 import {
   DEFAULT_ENABLED_PROVIDERS,
   DEFAULT_PROVIDER,
-  PROVIDERS,
+  isBuiltinProviderId,
+  resolveProvider,
+  type ProviderConfig,
   type ProviderId,
 } from "./providers";
 import {
   loadActiveProvider,
+  loadCustomProviders,
   loadEnabledProviders,
   loadOnboardingSeen,
   loadPersistSessions,
   saveActiveProvider,
+  saveCustomProviders,
   saveEnabledProviders,
   saveOnboardingSeen,
 } from "./storage";
@@ -34,10 +38,27 @@ function notifyBackground(message: Record<string, unknown>): void {
   }
 }
 
+/** Request optional host permission for a custom embed URL (ignore failures). */
+async function requestHostPermissionForUrl(url: string): Promise<void> {
+  try {
+    const origin = new URL(url).origin + "/*";
+    if (
+      typeof chrome.permissions === "undefined" ||
+      typeof chrome.permissions.request !== "function"
+    ) {
+      return;
+    }
+    await chrome.permissions.request({ origins: [origin] });
+  } catch {
+    // User denied or API unavailable — iframe may still work for some hosts.
+  }
+}
+
 export default function App() {
   const { t } = useI18n();
   const [active, setActive] = useState<ProviderId>(DEFAULT_PROVIDER);
   const [enabled, setEnabled] = useState<ProviderId[]>(DEFAULT_ENABLED_PROVIDERS);
+  const [customProviders, setCustomProviders] = useState<ProviderConfig[]>([]);
   /** Keep-alive: once mounted, stay until provider is disabled or manual reload. */
   const [mounted, setMounted] = useState<Set<ProviderId>>(() => new Set());
   const [loaded, setLoaded] = useState<Set<ProviderId>>(() => new Set());
@@ -56,13 +77,23 @@ export default function App() {
 
   const activeRef = useRef(active);
   activeRef.current = active;
+  const customProvidersRef = useRef(customProviders);
+  customProvidersRef.current = customProviders;
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
 
-  // Bootstrap: restore enabled list + last provider; mount only the active one first.
+  const getProvider = useCallback(
+    (id: string) => resolveProvider(id, customProviders),
+    [customProviders]
+  );
+
+  // Bootstrap: restore customs + enabled + last provider; mount only the active one first.
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      const [enabledList, lastActive, persist] = await Promise.all([
+      const [customs, enabledList, lastActive, persist] = await Promise.all([
+        loadCustomProviders(),
         loadEnabledProviders(),
         loadActiveProvider(),
         loadPersistSessions(),
@@ -73,6 +104,7 @@ export default function App() {
         ? lastActive
         : enabledList[0] ?? DEFAULT_PROVIDER;
 
+      setCustomProviders(customs);
       setEnabled(enabledList);
       setActive(nextActive);
       // Lazy mount: only the first visible provider — switch keeps others alive once opened.
@@ -177,12 +209,26 @@ export default function App() {
   }, []);
 
   /**
-   * Settings: enable/disable providers (min 1, max 4).
+   * Settings: enable/disable providers.
    * Disabling unmounts that iframe (free memory). Enabling does not auto-mount until selected.
+   * On newly enabled custom URLs, request optional host permission.
    */
   const handleEnabledChange = useCallback(
     async (nextEnabled: ProviderId[]) => {
-      const saved = await saveEnabledProviders(nextEnabled);
+      const customs = customProvidersRef.current;
+      const prevEnabled = enabledRef.current;
+
+      // Request host access for newly enabled custom providers.
+      for (const id of nextEnabled) {
+        if (prevEnabled.includes(id)) continue;
+        if (isBuiltinProviderId(id)) continue;
+        const cfg = resolveProvider(id, customs);
+        if (cfg?.embedUrl) {
+          await requestHostPermissionForUrl(cfg.embedUrl);
+        }
+      }
+
+      const saved = await saveEnabledProviders(nextEnabled, customs);
       setEnabled(saved);
 
       // Drop mounts for disabled providers (destroy only when user turns them off).
@@ -229,6 +275,66 @@ export default function App() {
     []
   );
 
+  /**
+   * Settings: create / edit / remove custom providers.
+   * Requests host permission for new/changed embed URLs.
+   * Prunes enabled list when a custom is removed.
+   */
+  const handleCustomProvidersChange = useCallback(
+    async (nextCustoms: ProviderConfig[]) => {
+      const prev = customProvidersRef.current;
+      const prevById = new Map(prev.map((p) => [p.id, p]));
+
+      for (const p of nextCustoms) {
+        const old = prevById.get(p.id);
+        if (!old || old.embedUrl !== p.embedUrl) {
+          await requestHostPermissionForUrl(p.embedUrl);
+        }
+      }
+
+      const savedCustoms = await saveCustomProviders(nextCustoms);
+      setCustomProviders(savedCustoms);
+
+      // Drop enabled entries for removed customs; re-normalize against new list.
+      const customIds = new Set(savedCustoms.map((p) => p.id));
+      const nextEnabled = enabledRef.current.filter(
+        (id) => isBuiltinProviderId(id) || customIds.has(id)
+      );
+      const savedEnabled = await saveEnabledProviders(nextEnabled, savedCustoms);
+      setEnabled(savedEnabled);
+
+      setMounted((prevMounted) => {
+        const next = new Set<ProviderId>();
+        for (const id of prevMounted) {
+          if (savedEnabled.includes(id)) next.add(id);
+        }
+        return next;
+      });
+      setLoaded((prevLoaded) => {
+        const next = new Set<ProviderId>();
+        for (const id of prevLoaded) {
+          if (savedEnabled.includes(id)) next.add(id);
+        }
+        return next;
+      });
+
+      if (!savedEnabled.includes(activeRef.current)) {
+        const fallback = savedEnabled[0];
+        if (fallback) {
+          setActive(fallback);
+          setMounted((m) => {
+            if (m.has(fallback)) return m;
+            const n = new Set(m);
+            n.add(fallback);
+            return n;
+          });
+          void saveActiveProvider(fallback);
+        }
+      }
+    },
+    []
+  );
+
   const reloadCurrent = useCallback(() => {
     const id = activeRef.current;
     setReloadToken((prev) => ({
@@ -247,7 +353,11 @@ export default function App() {
   }, []);
 
   const openOfficialSite = useCallback(() => {
-    void chrome.tabs.create({ url: PROVIDERS[activeRef.current].externalUrl });
+    const cfg = resolveProvider(activeRef.current, customProvidersRef.current);
+    const url = cfg?.externalUrl;
+    if (url) {
+      void chrome.tabs.create({ url });
+    }
   }, []);
 
   const handleFrameLoad = useCallback((id: ProviderId) => {
@@ -280,9 +390,10 @@ export default function App() {
     return "hidden";
   }, [online, showSlowLoadHelp, slowDismissed]);
 
-  const providerLabel = PROVIDERS[active]?.label ?? active;
+  const activeConfig = resolveProvider(active, customProviders);
+  const providerLabel = activeConfig?.label ?? active;
   const showLoadingHint = loading && online && bootstrapped;
-  // Stable order for keep-alive frames (catalog order among mounted)
+  // Stable order for keep-alive frames (enabled order among mounted)
   const mountedList = useMemo(() => {
     return enabled.filter((id) => mounted.has(id));
   }, [enabled, mounted]);
@@ -294,6 +405,7 @@ export default function App() {
           <ProviderSelector
             value={active}
             options={enabled}
+            getProvider={getProvider}
             onChange={selectProvider}
           />
         </div>
@@ -331,15 +443,19 @@ export default function App() {
       </header>
 
       <main className="frame-stage">
-        {mountedList.map((id) => (
-          <ProviderFrame
-            key={id}
-            provider={PROVIDERS[id]}
-            active={id === active}
-            reloadToken={reloadToken[id] ?? 0}
-            onLoad={() => handleFrameLoad(id)}
-          />
-        ))}
+        {mountedList.map((id) => {
+          const provider = resolveProvider(id, customProviders);
+          if (!provider) return null;
+          return (
+            <ProviderFrame
+              key={id}
+              provider={provider}
+              active={id === active}
+              reloadToken={reloadToken[id] ?? 0}
+              onLoad={() => handleFrameLoad(id)}
+            />
+          );
+        })}
 
         {showLoadingHint ? <LoadingHint /> : null}
 
@@ -357,6 +473,8 @@ export default function App() {
         onClose={() => setSettingsOpen(false)}
         enabledProviders={enabled}
         onEnabledChange={handleEnabledChange}
+        customProviders={customProviders}
+        onCustomProvidersChange={handleCustomProvidersChange}
       />
 
       <OnboardingTip visible={onboardingVisible} onDismiss={dismissOnboarding} />
