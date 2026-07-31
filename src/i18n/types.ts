@@ -76,6 +76,11 @@ export interface Messages {
   "settings.langAuto": string;
   "settings.langEn": string;
   "settings.langZh": string;
+  "settings.navAppearance": string;
+  "settings.navServices": string;
+  "settings.navLab": string;
+  "settings.navShortcuts": string;
+  "settings.navAbout": string;
   "settings.appearance": string;
   "settings.appearanceHelp": string;
   "settings.themeAuto": string;

@@ -28,6 +28,7 @@ import {
 } from "react";
 import {
   ArrowUpCircle,
+  Beaker,
   ExternalLink,
   Github,
   GripVertical,
@@ -38,6 +39,7 @@ import {
   ListOrdered,
   Monitor,
   Moon,
+  Palette,
   Plus,
   RefreshCw,
   Sun,
@@ -93,6 +95,14 @@ export interface SettingsPanelProps {
 
 /** ProviderConfig plus optional picker icon token (may be persisted by App). */
 type CustomProvider = ProviderConfig & { icon?: ProviderIcon };
+
+/** Settings page sections shown via left sidebar (page variant). */
+type SettingsNavId =
+  | "appearance"
+  | "services"
+  | "lab"
+  | "shortcuts"
+  | "about";
 
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -200,6 +210,7 @@ export function SettingsPanel({
     getInstalledVersion()
   );
   const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [activeNav, setActiveNav] = useState<SettingsNavId>("appearance");
 
   const panelRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
@@ -620,6 +631,28 @@ export function SettingsPanel({
     { mode: "dark", label: t("settings.themeDark"), icon: Moon },
   ];
 
+  const navItems: {
+    id: SettingsNavId;
+    label: string;
+    icon: typeof Palette;
+  }[] = [
+    {
+      id: "appearance",
+      label: t("settings.navAppearance"),
+      icon: Palette,
+    },
+    { id: "services", label: t("settings.navServices"), icon: Layers },
+    { id: "lab", label: t("settings.navLab"), icon: Beaker },
+    {
+      id: "shortcuts",
+      label: t("settings.navShortcuts"),
+      icon: Keyboard,
+    },
+    { id: "about", label: t("settings.navAbout"), icon: Github },
+  ];
+
+  const show = (id: SettingsNavId) => !isPage || activeNav === id;
+
   return (
     <div className="settings-layer" role="presentation">
       <ToastViewport toasts={toasts} onDismiss={dismissToast} />
@@ -633,7 +666,11 @@ export function SettingsPanel({
       ) : null}
       <div
         ref={panelRef}
-        className="settings-panel"
+        className={
+          isPage
+            ? "settings-panel settings-panel--page"
+            : "settings-panel"
+        }
         role={isPage ? "region" : "dialog"}
         aria-modal={isPage ? undefined : true}
         aria-labelledby="settings-title"
@@ -682,6 +719,77 @@ export function SettingsPanel({
           )}
         </header>
 
+        <div
+          className={
+            isPage ? "settings-shell" : "settings-shell settings-shell--flat"
+          }
+        >
+          {isPage ? (
+            <nav
+              className="settings-nav"
+              aria-label={t("settings.title", { name: PRODUCT_NAME })}
+            >
+              <ul className="settings-nav__list">
+                {navItems.map(({ id, label, icon: Icon }) => {
+                  const selected = activeNav === id;
+                  return (
+                    <li key={id}>
+                      <button
+                        type="button"
+                        className={
+                          selected
+                            ? "settings-nav__item is-active"
+                            : "settings-nav__item"
+                        }
+                        aria-current={selected ? "page" : undefined}
+                        onClick={() => setActiveNav(id)}
+                      >
+                        <Icon size={16} strokeWidth={2} aria-hidden />
+                        <span>{label}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
+          ) : null}
+
+          <div className="settings-main">
+        {show("appearance") ? (
+          <>
+        <section className="settings-section">
+          <div className="settings-section__label">
+            <Sun size={14} strokeWidth={2} aria-hidden />
+            <span>{t("settings.appearance")}</span>
+          </div>
+          <div
+            className="settings-actions"
+            role="radiogroup"
+            aria-label={t("settings.appearance")}
+          >
+            {themeOptions.map(({ mode, label, icon: Icon }) => {
+              const selected = themeMode === mode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  className={
+                    selected
+                      ? "settings-btn settings-btn--primary"
+                      : "settings-btn"
+                  }
+                  onClick={() => setThemeMode(mode)}
+                >
+                  <Icon size={14} strokeWidth={2} aria-hidden />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
         <section className="settings-section">
           <div className="settings-section__label">
             <Languages size={14} strokeWidth={2} aria-hidden />
@@ -716,40 +824,11 @@ export function SettingsPanel({
             })}
           </div>
         </section>
+          </>
+        ) : null}
 
-        <section className="settings-section">
-          <div className="settings-section__label">
-            <Sun size={14} strokeWidth={2} aria-hidden />
-            <span>{t("settings.appearance")}</span>
-          </div>
-          <div
-            className="settings-actions"
-            role="radiogroup"
-            aria-label={t("settings.appearance")}
-          >
-            {themeOptions.map(({ mode, label, icon: Icon }) => {
-              const selected = themeMode === mode;
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  className={
-                    selected
-                      ? "settings-btn settings-btn--primary"
-                      : "settings-btn"
-                  }
-                  onClick={() => setThemeMode(mode)}
-                >
-                  <Icon size={14} strokeWidth={2} aria-hidden />
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
+        {show("services") ? (
+          <>
         <section className="settings-section">
           <div className="settings-section__label">
             <ListOrdered size={14} strokeWidth={2} aria-hidden />
@@ -1048,7 +1127,10 @@ export function SettingsPanel({
             </div>
           ) : null}
         </section>
+          </>
+        ) : null}
 
+        {show("lab") ? (
         <section className="settings-section">
           <div className="settings-section__label">
             <Layers2 size={14} strokeWidth={2} aria-hidden />
@@ -1084,7 +1166,10 @@ export function SettingsPanel({
           </ul>
           <p className="settings-footnote">{t("settings.persistWarning")}</p>
         </section>
+        ) : null}
 
+        {show("shortcuts") ? (
+          <>
         <section className="settings-section">
           <div className="settings-section__label">
             <Keyboard size={14} strokeWidth={2} aria-hidden />
@@ -1149,7 +1234,11 @@ export function SettingsPanel({
             </ul>
           </section>
         ) : null}
+          </>
+        ) : null}
 
+        {show("about") ? (
+          <>
         <section className="settings-section">
           <div className="settings-section__label">
             <ArrowUpCircle size={14} strokeWidth={2} aria-hidden />
@@ -1220,6 +1309,10 @@ export function SettingsPanel({
             {t("settings.openExtensionDetails")}
           </button>
         </section>
+          </>
+        ) : null}
+          </div>
+        </div>
       </div>
     </div>
   );
