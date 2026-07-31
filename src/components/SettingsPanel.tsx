@@ -1214,7 +1214,6 @@ export function SettingsPanel({
             </button>
           </div>
 
-          <p className="settings-footnote">{t("settings.shortcutFootnote")}</p>
         </section>
 
         {commands.length > 1 ? (

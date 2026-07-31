@@ -53,8 +53,6 @@ export const en: Messages = {
   "settings.unbound": "Not bound — set it in Chrome",
   "settings.configureShortcut": "Configure shortcut",
   "settings.refreshStatus": "Refresh status",
-  "settings.shortcutFootnote":
-    "Opens chrome://extensions/shortcuts (extensions cannot rewrite shortcuts directly).",
   "settings.allCommands": "All commands",
   "settings.openSource": "Open source",
   "settings.openSourceMit": "Open source · MIT",

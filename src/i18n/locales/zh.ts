@@ -53,8 +53,6 @@ export const zh: Messages = {
   "settings.unbound": "当前未绑定，请到 Chrome 中设置",
   "settings.configureShortcut": "配置快捷键",
   "settings.refreshStatus": "刷新状态",
-  "settings.shortcutFootnote":
-    "将打开 chrome://extensions/shortcuts（扩展无法直接改写快捷键）。",
   "settings.allCommands": "全部命令",
   "settings.openSource": "开源",
   "settings.openSourceMit": "开源 · MIT",

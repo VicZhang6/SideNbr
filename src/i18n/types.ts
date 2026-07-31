@@ -59,7 +59,6 @@ export interface Messages {
   "settings.unbound": string;
   "settings.configureShortcut": string;
   "settings.refreshStatus": string;
-  "settings.shortcutFootnote": string;
   "settings.allCommands": string;
   "settings.openSource": string;
   "settings.openSourceMit": string;
