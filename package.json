@@ -1,6 +1,6 @@
 {
   "name": "sidenbr",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "private": true,
   "description": "Chrome side panel for Perplexity, ChatGPT, DeepSeek, Grok, and custom sites",
   "type": "module",

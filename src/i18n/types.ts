@@ -85,6 +85,17 @@ export interface Messages {
   "settings.persistOn": string;
   "settings.persistOff": string;
   "settings.persistWarning": string;
+  "settings.aboutTitle": string;
+  "settings.version": string;
+  "settings.currentVersion": string;
+  "settings.checkUpdate": string;
+  "settings.checkingUpdate": string;
+  "settings.upToDate": string;
+  "settings.updateAvailable": string;
+  "settings.openRelease": string;
+  "settings.downloadUpdate": string;
+  "settings.updateCheckFailed": string;
+  "settings.updateCheckHint": string;
   "shortcut.unbound": string;
   "common.close": string;
 }

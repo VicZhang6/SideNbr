@@ -21,6 +21,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ArrowUpCircle,
+  Download,
   ExternalLink,
   Github,
   Keyboard,
@@ -63,7 +65,17 @@ import {
   SHORTCUTS_URL,
   type CommandInfo,
 } from "../shortcuts";
+import {
+  checkLatestRelease,
+  getInstalledVersion,
+  type UpdateCheckResult,
+} from "../updateCheck";
 import { DEFAULT_CUSTOM_ICON, IconPicker } from "./IconPicker";
+
+type UpdateUiState =
+  | { kind: "idle" }
+  | { kind: "checking" }
+  | { kind: "result"; result: UpdateCheckResult };
 
 export interface SettingsPanelProps {
   open: boolean;
@@ -137,16 +149,20 @@ function readIcon(p: ProviderConfig): ProviderIcon | undefined {
   return undefined;
 }
 
-async function openRepo(): Promise<void> {
+async function openExternalUrl(url: string): Promise<void> {
   try {
-    await chrome.tabs.create({ url: REPO_URL });
+    await chrome.tabs.create({ url });
   } catch {
     try {
-      window.open(REPO_URL, "_blank", "noopener,noreferrer");
+      window.open(url, "_blank", "noopener,noreferrer");
     } catch {
       // ignore
     }
   }
+}
+
+async function openRepo(): Promise<void> {
+  await openExternalUrl(REPO_URL);
 }
 
 /**
@@ -178,6 +194,13 @@ export function SettingsPanel({
   const [customIcon, setCustomIcon] =
     useState<ProviderIcon>(DEFAULT_CUSTOM_ICON);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const [installedVersion, setInstalledVersion] = useState(() =>
+    getInstalledVersion()
+  );
+  const [updateState, setUpdateState] = useState<UpdateUiState>({
+    kind: "idle",
+  });
 
   const panelRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
@@ -218,6 +241,8 @@ export function SettingsPanel({
     void refresh();
     setToggleHint(null);
     resetCustomForm();
+    setInstalledVersion(getInstalledVersion());
+    setUpdateState({ kind: "idle" });
     void loadPersistSessions().then(setPersistSessions);
 
     const onVis = () => {
@@ -343,6 +368,22 @@ export function SettingsPanel({
     }
   };
 
+  const handleCheckUpdate = useCallback(async () => {
+    setUpdateState({ kind: "checking" });
+    try {
+      const result = await checkLatestRelease();
+      setUpdateState({ kind: "result", result });
+    } catch {
+      setUpdateState({
+        kind: "result",
+        result: {
+          status: "error",
+          installedVersion: getInstalledVersion(),
+        },
+      });
+    }
+  }, []);
+
   const toggleProvider = (id: string) => {
     const isOn = enabledSet.has(id);
     if (isOn) {
@@ -411,6 +452,10 @@ export function SettingsPanel({
 
   if (!open) return null;
 
+  const updateResult =
+    updateState.kind === "result" ? updateState.result : null;
+  const isCheckingUpdate = updateState.kind === "checking";
+
   const langOptions: { mode: LocaleMode; label: string }[] = [
     { mode: "auto", label: t("settings.langAuto") },
     { mode: "en", label: t("settings.langEn") },
@@ -444,22 +489,48 @@ export function SettingsPanel({
         aria-modal={isPage ? undefined : true}
         aria-labelledby="settings-title"
       >
-        <header className="settings-panel__header">
-          <h2 id="settings-title" className="settings-panel__title">
-            {t("settings.title", { name: PRODUCT_NAME })}
-          </h2>
-          {!isPage ? (
-            <button
-              ref={closeBtnRef}
-              type="button"
-              className="toolbar__btn"
-              onClick={onClose}
-              title={t("settings.close")}
-              aria-label={t("settings.close")}
-            >
-              <X size={16} strokeWidth={2} />
-            </button>
-          ) : null}
+        <header
+          className={
+            isPage
+              ? "settings-panel__header settings-panel__header--page"
+              : "settings-panel__header"
+          }
+        >
+          {isPage ? (
+            <div className="settings-brand">
+              <img
+                className="settings-brand__logo"
+                src={
+                  typeof chrome !== "undefined" && chrome.runtime?.getURL
+                    ? chrome.runtime.getURL("icons/icon-128.png")
+                    : "/icons/icon-128.png"
+                }
+                width={72}
+                height={72}
+                alt={PRODUCT_NAME}
+                decoding="async"
+              />
+              <h2 id="settings-title" className="settings-panel__title">
+                {t("settings.title", { name: PRODUCT_NAME })}
+              </h2>
+            </div>
+          ) : (
+            <>
+              <h2 id="settings-title" className="settings-panel__title">
+                {t("settings.title", { name: PRODUCT_NAME })}
+              </h2>
+              <button
+                ref={closeBtnRef}
+                type="button"
+                className="toolbar__btn"
+                onClick={onClose}
+                title={t("settings.close")}
+                aria-label={t("settings.close")}
+              >
+                <X size={16} strokeWidth={2} />
+              </button>
+            </>
+          )}
         </header>
 
         <section className="settings-section">
@@ -467,9 +538,6 @@ export function SettingsPanel({
             <Languages size={14} strokeWidth={2} aria-hidden />
             <span>{t("settings.language")}</span>
           </div>
-          <p className="settings-footnote settings-footnote--tight">
-            {t("settings.languageHelp")}
-          </p>
           <div
             className="settings-actions"
             role="radiogroup"
@@ -490,6 +558,9 @@ export function SettingsPanel({
                   }
                   onClick={() => setLocaleMode(mode)}
                 >
+                  {mode === "auto" ? (
+                    <Monitor size={14} strokeWidth={2} aria-hidden />
+                  ) : null}
                   {label}
                 </button>
               );
@@ -499,12 +570,9 @@ export function SettingsPanel({
 
         <section className="settings-section">
           <div className="settings-section__label">
-            <Monitor size={14} strokeWidth={2} aria-hidden />
+            <Sun size={14} strokeWidth={2} aria-hidden />
             <span>{t("settings.appearance")}</span>
           </div>
-          <p className="settings-footnote settings-footnote--tight">
-            {t("settings.appearanceHelp")}
-          </p>
           <div
             className="settings-actions"
             role="radiogroup"
@@ -587,9 +655,24 @@ export function SettingsPanel({
         </section>
 
         <section className="settings-section">
-          <div className="settings-section__label">
-            <Plus size={14} strokeWidth={2} aria-hidden />
-            <span>{t("settings.customTitle")}</span>
+          <div className="settings-section__heading">
+            <div className="settings-section__label">
+              <Plus size={14} strokeWidth={2} aria-hidden />
+              <span>{t("settings.customTitle")}</span>
+            </div>
+            {!addingCustom ? (
+              <button
+                type="button"
+                className="settings-btn settings-btn--add"
+                onClick={() => {
+                  setAddingCustom(true);
+                  setFormError(null);
+                }}
+              >
+                <Plus size={14} strokeWidth={2} aria-hidden />
+                {t("settings.customAdd")}
+              </button>
+            ) : null}
           </div>
 
           {customProviders.length === 0 && !addingCustom ? (
@@ -725,21 +808,7 @@ export function SettingsPanel({
                 </button>
               </div>
             </div>
-          ) : (
-            <div className="settings-actions">
-              <button
-                type="button"
-                className="settings-btn"
-                onClick={() => {
-                  setAddingCustom(true);
-                  setFormError(null);
-                }}
-              >
-                <Plus size={14} strokeWidth={2} aria-hidden />
-                {t("settings.customAdd")}
-              </button>
-            </div>
-          )}
+          ) : null}
         </section>
 
         <section className="settings-section">
@@ -850,33 +919,128 @@ export function SettingsPanel({
         ) : null}
 
         <section className="settings-section">
+          <div className="settings-section__heading">
+            <div className="settings-section__label">
+              <ArrowUpCircle size={14} strokeWidth={2} aria-hidden />
+              <span>{t("settings.aboutTitle")}</span>
+            </div>
+          </div>
+          <ul className="settings-provider-list">
+            <li className="settings-provider-list__item">
+              <span className="settings-provider-list__meta">
+                <span className="settings-provider-list__name">
+                  {t("settings.currentVersion")}
+                </span>
+              </span>
+              <code className="settings-version" title={t("settings.version")}>
+                {installedVersion}
+              </code>
+            </li>
+          </ul>
+          <p className="settings-footnote settings-footnote--tight">
+            {t("settings.updateCheckHint")}
+          </p>
+          <div className="settings-actions">
+            <button
+              type="button"
+              className="settings-btn"
+              onClick={() => void handleCheckUpdate()}
+              disabled={isCheckingUpdate}
+            >
+              <RefreshCw
+                size={14}
+                strokeWidth={2}
+                aria-hidden
+                className={isCheckingUpdate ? "is-spinning" : undefined}
+              />
+              {isCheckingUpdate
+                ? t("settings.checkingUpdate")
+                : t("settings.checkUpdate")}
+            </button>
+          </div>
+          {updateResult?.status === "upToDate" ? (
+            <p
+              className="settings-update-status settings-update-status--ok"
+              role="status"
+            >
+              {t("settings.upToDate")}
+            </p>
+          ) : null}
+          {updateResult?.status === "updateAvailable" ? (
+            <div className="settings-update-result">
+              <p
+                className="settings-update-status settings-update-status--warn"
+                role="status"
+              >
+                {t("settings.updateAvailable", {
+                  version:
+                    updateResult.latestVersion ??
+                    updateResult.installedVersion,
+                })}
+              </p>
+              <div className="settings-actions">
+                {updateResult.releaseUrl ? (
+                  <button
+                    type="button"
+                    className="settings-btn settings-btn--primary"
+                    onClick={() => {
+                      const url = updateResult.releaseUrl;
+                      if (url) void openExternalUrl(url);
+                    }}
+                  >
+                    <ExternalLink size={14} strokeWidth={2} aria-hidden />
+                    {t("settings.openRelease")}
+                  </button>
+                ) : null}
+                {updateResult.downloadUrl ? (
+                  <button
+                    type="button"
+                    className="settings-btn"
+                    onClick={() => {
+                      const url = updateResult.downloadUrl;
+                      if (url) void openExternalUrl(url);
+                    }}
+                  >
+                    <Download size={14} strokeWidth={2} aria-hidden />
+                    {t("settings.downloadUpdate")}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+          {updateResult?.status === "error" ? (
+            <p
+              className="settings-update-status settings-update-status--error"
+              role="status"
+            >
+              {updateResult.message || t("settings.updateCheckFailed")}
+            </p>
+          ) : null}
+        </section>
+
+        <section className="settings-section">
           <div className="settings-section__label">
             <Github size={14} strokeWidth={2} aria-hidden />
             <span>{t("settings.openSource")}</span>
           </div>
-          <div className="settings-repo-card">
-            <div className="settings-repo-card__meta">
-              <span className="settings-repo-card__name">{PRODUCT_NAME}</span>
-              <span className="settings-repo-card__desc">
-                {t("settings.openSourceMit")}
-              </span>
-            </div>
-            <button
-              type="button"
-              className="settings-repo-link"
-              onClick={() => void openRepo()}
-              title={t("settings.openRepo")}
-            >
-              <Github size={15} strokeWidth={2} aria-hidden />
-              <span className="settings-repo-link__label">{REPO_LABEL}</span>
-              <ExternalLink
-                size={13}
-                strokeWidth={2}
-                className="settings-repo-link__ext"
-                aria-hidden
-              />
-            </button>
-          </div>
+          <button
+            type="button"
+            className="settings-repo-link"
+            onClick={() => void openRepo()}
+            title={t("settings.openRepo")}
+          >
+            <Github size={15} strokeWidth={2} aria-hidden />
+            <span className="settings-repo-link__label">{REPO_LABEL}</span>
+            <span className="settings-repo-link__badge">
+              {t("settings.openSourceMit")}
+            </span>
+            <ExternalLink
+              size={13}
+              strokeWidth={2}
+              className="settings-repo-link__ext"
+              aria-hidden
+            />
+          </button>
         </section>
 
         <section className="settings-section settings-section--footer">

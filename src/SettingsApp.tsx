@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DEFAULT_ENABLED_PROVIDERS,
   isBuiltinProviderId,
+  MAX_ENABLED_PROVIDERS,
   normalizeCustomProviders,
   normalizeEnabledProviders,
   resolveProvider,
@@ -121,6 +122,7 @@ export default function SettingsApp() {
     async (nextCustoms: ProviderConfig[]) => {
       const prev = customProvidersRef.current;
       const prevById = new Map(prev.map((p) => [p.id, p]));
+      const prevIds = new Set(prev.map((p) => p.id));
 
       for (const p of nextCustoms) {
         const old = prevById.get(p.id);
@@ -133,9 +135,20 @@ export default function SettingsApp() {
       setCustomProviders(savedCustoms);
 
       const customIds = new Set(savedCustoms.map((p) => p.id));
-      const nextEnabled = enabledRef.current.filter(
+      // Drop enabled entries for deleted customs.
+      let nextEnabled = enabledRef.current.filter(
         (id) => isBuiltinProviderId(id) || customIds.has(id)
       );
+
+      // Auto-enable newly added customs when there is room (1–4 total).
+      const added = savedCustoms.filter((p) => !prevIds.has(p.id));
+      for (const p of added) {
+        if (nextEnabled.length >= MAX_ENABLED_PROVIDERS) break;
+        if (!nextEnabled.includes(p.id)) {
+          nextEnabled = [...nextEnabled, p.id];
+        }
+      }
+
       const savedEnabled = await saveEnabledProviders(nextEnabled, savedCustoms);
       setEnabled(savedEnabled);
     },

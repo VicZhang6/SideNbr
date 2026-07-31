@@ -3,6 +3,8 @@ import { ExternalLink, RefreshCw, Settings } from "lucide-react";
 import {
   DEFAULT_ENABLED_PROVIDERS,
   DEFAULT_PROVIDER,
+  normalizeCustomProviders,
+  normalizeEnabledProviders,
   resolveProvider,
   type ProviderConfig,
   type ProviderId,
@@ -117,6 +119,94 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  /**
+   * Live-sync when Settings (or another page) writes customProviders / enabledProviders.
+   * Without this, the side panel only saw storage on bootstrap and required an
+   * extension reload after toggles or adding custom services.
+   */
+  useEffect(() => {
+    if (!bootstrapped) return;
+
+    /** Prune keep-alive frames and re-pick active when the enabled set changes. */
+    const syncEnabledSideEffects = (nextEnabled: ProviderId[]) => {
+      setMounted((prev) => {
+        const next = new Set<ProviderId>();
+        for (const id of prev) {
+          if (nextEnabled.includes(id)) next.add(id);
+        }
+        return next;
+      });
+      setLoaded((prev) => {
+        const next = new Set<ProviderId>();
+        for (const id of prev) {
+          if (nextEnabled.includes(id)) next.add(id);
+        }
+        return next;
+      });
+
+      setActive((prevActive) => {
+        if (nextEnabled.includes(prevActive)) return prevActive;
+        const fallback = nextEnabled[0] ?? DEFAULT_PROVIDER;
+        setMounted((prev) => {
+          if (prev.has(fallback)) return prev;
+          const next = new Set(prev);
+          next.add(fallback);
+          return next;
+        });
+        setLoaded((prevLoaded) => {
+          if (prevLoaded.has(fallback)) {
+            setLoading(false);
+            setShowSlowLoadHelp(false);
+          } else {
+            setLoading(true);
+            setShowSlowLoadHelp(false);
+            setSlowDismissed(false);
+          }
+          return prevLoaded;
+        });
+        void saveActiveProvider(fallback);
+        return fallback;
+      });
+    };
+
+    const onChanged = (
+      changes: { [key: string]: chrome.storage.StorageChange },
+      areaName: string
+    ) => {
+      if (areaName !== "local") return;
+
+      if (changes.customProviders) {
+        const nextCustoms = normalizeCustomProviders(
+          changes.customProviders.newValue
+        );
+        setCustomProviders(nextCustoms);
+        // Drop enabled entries for deleted customs; keep rest as-is.
+        setEnabled((prev) => {
+          const nextEnabled = normalizeEnabledProviders(prev, nextCustoms);
+          syncEnabledSideEffects(nextEnabled);
+          return nextEnabled;
+        });
+      }
+
+      if (changes.enabledProviders) {
+        setCustomProviders((customs) => {
+          const nextEnabled = normalizeEnabledProviders(
+            changes.enabledProviders.newValue,
+            customs
+          );
+          setEnabled(nextEnabled);
+          syncEnabledSideEffects(nextEnabled);
+          return customs;
+        });
+      }
+    };
+
+    chrome.storage.onChanged.addListener(onChanged);
+    return () => {
+      chrome.storage.onChanged.removeListener(onChanged);
+    };
+  }, [bootstrapped]);
 
   // Keep background session-host in sync when enabled set or active provider changes.
   useEffect(() => {

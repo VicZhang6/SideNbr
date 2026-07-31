@@ -84,6 +84,17 @@ export const en: Messages = {
   "settings.persistOff": "Disabled",
   "settings.persistWarning":
     "A minimized background window may appear; don’t force-quit it.",
+  "settings.aboutTitle": "About",
+  "settings.version": "Version",
+  "settings.currentVersion": "Current version",
+  "settings.checkUpdate": "Check for updates",
+  "settings.checkingUpdate": "Checking…",
+  "settings.upToDate": "You're up to date",
+  "settings.updateAvailable": "New version {version} available",
+  "settings.openRelease": "View release",
+  "settings.downloadUpdate": "Download update",
+  "settings.updateCheckFailed": "Could not check for updates",
+  "settings.updateCheckHint": "Compares with the latest GitHub Release.",
   "shortcut.unbound": "Not bound",
   "common.close": "Close",
 };

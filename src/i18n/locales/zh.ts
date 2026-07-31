@@ -82,6 +82,17 @@ export const zh: Messages = {
   "settings.persistOff": "已关闭",
   "settings.persistWarning":
     "后台可能出现最小化窗口；请勿强行关闭。",
+  "settings.aboutTitle": "关于",
+  "settings.version": "版本",
+  "settings.currentVersion": "当前版本",
+  "settings.checkUpdate": "检查更新",
+  "settings.checkingUpdate": "检查中…",
+  "settings.upToDate": "已是最新版本",
+  "settings.updateAvailable": "发现新版本 {version}",
+  "settings.openRelease": "查看发布页",
+  "settings.downloadUpdate": "下载更新",
+  "settings.updateCheckFailed": "无法检查更新",
+  "settings.updateCheckHint": "与 GitHub 最新 Release 对比。",
   "shortcut.unbound": "未绑定",
   "common.close": "关闭",
 };
