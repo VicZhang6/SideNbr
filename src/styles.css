@@ -633,6 +633,15 @@ html.settings-page-html {
   min-height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
+  /* Hide scrollbar, keep scrolling */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+
+html.settings-page-html::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 html.settings-page-html body.settings-page-body,
@@ -640,6 +649,15 @@ html.settings-page-html body.settings-page-body #root {
   height: auto;
   min-height: 100%;
   overflow: visible;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html.settings-page-html body.settings-page-body::-webkit-scrollbar,
+html.settings-page-html body.settings-page-body #root::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .settings-page-body {
