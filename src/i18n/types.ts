@@ -17,6 +17,7 @@ export interface Messages {
   "toolbar.openOfficial": string;
   "toolbar.settings": string;
   "toolbar.settingsOpen": string;
+  "toolbar.settingsUpdateAvailable": string;
   loading: string;
   "providerSelect.aria": string;
   "error.slowTitle": string;
@@ -95,7 +96,6 @@ export interface Messages {
   "settings.openRelease": string;
   "settings.downloadUpdate": string;
   "settings.updateCheckFailed": string;
-  "settings.updateCheckHint": string;
   "shortcut.unbound": string;
   "common.close": string;
 }

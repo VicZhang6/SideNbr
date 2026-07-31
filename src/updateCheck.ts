@@ -13,6 +13,28 @@ export type UpdateCheckResult = {
 
 const FETCH_TIMEOUT_MS = 10_000;
 const ZIP_ASSET_RE = /^SideNbr-.*\.zip$/i;
+/** chrome.storage.local key for last successful (or soft) check cache. */
+const UPDATE_CHECK_CACHE_KEY = "updateCheckCache";
+/** Reuse cached result for 6h to avoid hammering GitHub from every panel open. */
+const UPDATE_CHECK_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
+type UpdateCheckCache = {
+  checkedAt: number;
+  installedVersion: string;
+  result: UpdateCheckResult;
+};
+
+function isCacheEntry(value: unknown): value is UpdateCheckCache {
+  if (!value || typeof value !== "object") return false;
+  const v = value as UpdateCheckCache;
+  return (
+    typeof v.checkedAt === "number" &&
+    typeof v.installedVersion === "string" &&
+    v.result != null &&
+    typeof v.result === "object" &&
+    typeof (v.result as UpdateCheckResult).status === "string"
+  );
+}
 
 /** Installed extension version from the Chrome manifest. */
 export function getInstalledVersion(): string {
@@ -139,4 +161,57 @@ export async function checkLatestRelease(): Promise<UpdateCheckResult> {
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+/**
+ * Silent / background-friendly check with a short TTL cache.
+ * Errors are cached only briefly (not written) so the next open can retry.
+ */
+export async function checkLatestReleaseCached(
+  options: { force?: boolean } = {}
+): Promise<UpdateCheckResult> {
+  const installedVersion = getInstalledVersion();
+  const force = options.force === true;
+
+  if (!force) {
+    try {
+      const stored = await chrome.storage.local.get(UPDATE_CHECK_CACHE_KEY);
+      const entry = stored[UPDATE_CHECK_CACHE_KEY];
+      if (
+        isCacheEntry(entry) &&
+        entry.installedVersion === installedVersion &&
+        Date.now() - entry.checkedAt < UPDATE_CHECK_CACHE_TTL_MS &&
+        entry.result.status !== "error"
+      ) {
+        return {
+          ...entry.result,
+          installedVersion,
+        };
+      }
+    } catch {
+      // storage unavailable — fall through to network
+    }
+  }
+
+  const result = await checkLatestRelease();
+
+  if (result.status !== "error") {
+    try {
+      const cache: UpdateCheckCache = {
+        checkedAt: Date.now(),
+        installedVersion: result.installedVersion,
+        result,
+      };
+      await chrome.storage.local.set({ [UPDATE_CHECK_CACHE_KEY]: cache });
+    } catch {
+      // ignore cache write failures
+    }
+  }
+
+  return result;
+}
+
+/** Whether the result means the user can upgrade. */
+export function isUpdateAvailable(result: UpdateCheckResult | null | undefined): boolean {
+  return result?.status === "updateAvailable";
 }

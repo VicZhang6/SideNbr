@@ -280,6 +280,7 @@ body {
 }
 
 .toolbar__btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -296,6 +297,37 @@ body {
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease,
     color 0.15s ease;
+}
+
+/* iOS-style notification badge on settings when a GitHub release is newer */
+.toolbar__badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  z-index: 1;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: #ff3b30;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+  box-shadow: 0 0 0 1.5px var(--toolbar-bg);
+}
+
+[data-theme="dark"] .toolbar__badge,
+html[data-theme="dark"] .toolbar__badge {
+  background: #ff453a;
+  box-shadow: 0 0 0 1.5px var(--toolbar-bg);
 }
 
 .toolbar__btn:hover {
@@ -467,7 +499,9 @@ body {
   }
 }
 
-/* ---- Error overlay ---- */
+/* ---- Error overlay ----
+   Card + actions aligned with settings-page Airbnb-like language
+   (surface card, soft border, 14px radius, settings-btn-like controls). */
 .error-overlay {
   position: absolute;
   inset: 0;
@@ -483,80 +517,112 @@ body {
 .error-overlay__panel {
   width: 100%;
   max-width: 340px;
-  padding: 20px 18px 16px;
+  padding: 16px 18px 14px;
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--surface);
-  box-shadow: var(--shadow-md);
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .error-overlay__title {
   margin: 0 0 8px;
   font-size: 15px;
   font-weight: 600;
-  color: var(--text);
+  letter-spacing: -0.02em;
+  color: var(--text-strong);
 }
 
 .error-overlay__body {
-  margin: 0 0 16px;
+  margin: 0 0 14px;
   color: var(--text-muted);
   font-size: 13px;
   line-height: 1.5;
+  letter-spacing: -0.01em;
 }
 
 .error-overlay__actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+  margin-top: 2px;
 }
 
-.error-overlay__btn {
+/* Shared side-panel overlay buttons (settings-btn language, token-based) */
+.error-overlay__btn,
+.onboarding-tip__btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 32px;
-  padding: 6px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  gap: 6px;
+  min-height: 36px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
   background: var(--surface);
-  color: var(--text);
+  color: var(--text-strong);
   font: inherit;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 550;
+  letter-spacing: -0.01em;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.15s ease;
 }
 
-.error-overlay__btn:hover {
-  background: var(--bg);
+.error-overlay__btn:hover,
+.onboarding-tip__btn:hover {
+  background: var(--surface-elevated);
   border-color: var(--border-hover);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
-.error-overlay__btn:focus-visible {
+.error-overlay__btn:active,
+.onboarding-tip__btn:active {
+  transform: scale(0.98);
+}
+
+.error-overlay__btn:focus-visible,
+.onboarding-tip__btn:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
 }
 
-.error-overlay__btn--primary {
-  border-color: var(--primary);
-  background: var(--primary);
-  color: var(--text-on-primary);
-}
-
-.error-overlay__btn--primary:hover {
-  border-color: var(--primary-hover);
-  background: var(--primary-hover);
-}
-
-.error-overlay__btn--ghost {
+/* Primary ≈ settings-page .settings-btn--primary (ink fill, tokenized) */
+.error-overlay__btn--primary,
+.onboarding-tip__btn--primary {
   border-color: transparent;
-  background: transparent;
-  color: var(--text-muted);
+  background: var(--text-strong);
+  color: var(--surface);
+  box-shadow: none;
 }
 
-.error-overlay__btn--ghost:hover {
-  background: var(--hover-bg);
+.error-overlay__btn--primary:hover,
+.onboarding-tip__btn--primary:hover {
   border-color: transparent;
+  background: var(--text);
+  color: var(--surface);
+  box-shadow: none;
+}
+
+/* Ghost / tertiary — quiet dismiss (not full-width; sits in action rows) */
+.error-overlay__btn--ghost,
+.onboarding-tip__btn--ghost {
+  border-color: transparent;
+  background: var(--ghost-bg);
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+
+.error-overlay__btn--ghost:hover,
+.onboarding-tip__btn--ghost:hover {
+  background: var(--ghost-hover-bg);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 /* ---- Settings page (options tab) — airy, refined “Airbnb-like” layout ----
@@ -1133,6 +1199,32 @@ html[data-theme="dark"] .settings-page .settings-shortcut-card {
 }
 
 /* About / version + update check */
+.settings-page .settings-about-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.settings-page .settings-about-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.settings-page .settings-about-row__label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+
+.settings-page .settings-about-row .settings-btn {
+  flex-shrink: 0;
+}
+
 .settings-page .settings-version {
   flex: 0 0 auto;
   padding: 2px 8px;
@@ -1451,6 +1543,32 @@ html[data-theme="dark"] .settings-page .settings-update-status--warn {
   color: var(--primary-soft-text);
   font-size: 12px;
   line-height: 1.45;
+}
+
+.settings-about-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.settings-about-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.settings-about-row__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+
+.settings-about-row .settings-btn {
+  flex-shrink: 0;
 }
 
 .settings-version {
@@ -1884,7 +2002,8 @@ html[data-theme="dark"] .settings-page .settings-update-status--warn {
   color: var(--text-muted);
 }
 
-/* ---- Onboarding tip ---- */
+/* ---- Onboarding tip ----
+   Same card language as error-overlay / settings sections. */
 .onboarding-tip {
   position: absolute;
   right: 10px;
@@ -1893,30 +2012,32 @@ html[data-theme="dark"] .settings-page .settings-update-status--warn {
   z-index: 30;
   max-width: 400px;
   margin-inline: auto;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  padding: 16px 18px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
   background: var(--surface);
-  box-shadow: var(--shadow-lg);
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .onboarding-tip__text {
   margin: 0 0 6px;
-  color: var(--text);
-  font-size: 12.5px;
+  color: var(--text-strong);
+  font-size: 13px;
   line-height: 1.5;
+  letter-spacing: -0.01em;
 }
 
 .onboarding-tip__path {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   color: var(--text-muted);
-  font-size: 11.5px;
+  font-size: 12px;
+  line-height: 1.45;
   word-break: break-all;
 }
 
 .onboarding-tip__path code {
-  padding: 1px 4px;
+  padding: 1px 5px;
   border-radius: 4px;
   background: var(--code-bg);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -1926,43 +2047,8 @@ html[data-theme="dark"] .settings-page .settings-update-status--warn {
 .onboarding-tip__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-}
-
-.onboarding-tip__btn {
-  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-height: 32px;
-  padding: 6px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.onboarding-tip__btn:hover {
-  background: var(--bg);
-}
-
-.onboarding-tip__btn:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 1px;
-}
-
-.onboarding-tip__btn--dismiss {
-  border-color: var(--primary);
-  background: var(--primary);
-  color: var(--text-on-primary);
-}
-
-.onboarding-tip__btn--dismiss:hover {
-  border-color: var(--primary-hover);
-  background: var(--primary-hover);
+  gap: 8px;
 }
 
 /* ---- Narrow side panel ---- */
@@ -1980,8 +2066,9 @@ html[data-theme="dark"] .settings-page .settings-update-status--warn {
     padding: 12px;
   }
 
-  .error-overlay__panel {
-    padding: 16px 14px 12px;
+  .error-overlay__panel,
+  .onboarding-tip {
+    padding: 14px 14px 12px;
   }
 
   .onboarding-tip {
@@ -2005,6 +2092,181 @@ html[data-theme="dark"] .settings-page .settings-update-status--warn {
 }
 
 /* Label hide is driven by ResizeObserver (provider-selector--icons-only). */
+
+/* ---- Toast ----
+   Fixed bottom-right stack for settings (and reusable elsewhere).
+   Card language matches settings: surface, soft border, 12–14px radius, shadow-md. */
+.toast-viewport {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: min(360px, calc(100vw - 40px));
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-width: 220px;
+  max-width: 360px;
+  padding: 12px 12px 12px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  border-left-width: 3px;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  color: var(--text-strong);
+  animation: toast-in 0.22s ease-out both;
+}
+
+.toast--info {
+  border-left-color: var(--primary);
+  background: color-mix(in srgb, var(--primary-soft) 55%, var(--surface));
+}
+
+.toast--success {
+  border-left-color: #22c55e;
+  background: color-mix(in srgb, rgba(34, 197, 94, 0.12) 70%, var(--surface));
+}
+
+.toast--warning {
+  border-left-color: #f59e0b;
+  background: color-mix(in srgb, rgba(245, 158, 11, 0.14) 70%, var(--surface));
+}
+
+.toast--error {
+  border-left-color: var(--danger);
+  background: color-mix(in srgb, var(--danger-muted) 70%, var(--surface));
+}
+
+[data-theme="dark"] .toast--info,
+html[data-theme="dark"] .toast--info {
+  background: color-mix(in srgb, var(--primary-soft) 45%, var(--surface));
+}
+
+[data-theme="dark"] .toast--success,
+html[data-theme="dark"] .toast--success {
+  background: color-mix(in srgb, rgba(34, 197, 94, 0.16) 55%, var(--surface));
+}
+
+[data-theme="dark"] .toast--warning,
+html[data-theme="dark"] .toast--warning {
+  background: color-mix(in srgb, rgba(245, 158, 11, 0.16) 55%, var(--surface));
+}
+
+[data-theme="dark"] .toast--error,
+html[data-theme="dark"] .toast--error {
+  background: color-mix(in srgb, var(--danger-muted) 55%, var(--surface));
+}
+
+.toast__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.toast__message {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text-strong);
+  word-break: break-word;
+}
+
+.toast__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-strong);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.toast__action:hover {
+  background: var(--surface-elevated);
+  border-color: var(--border-hover);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.toast__action:active {
+  transform: scale(0.98);
+}
+
+.toast__action:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.toast__close {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: -2px -2px 0 0;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.toast__close:hover {
+  background: var(--hover-bg);
+  color: var(--text-strong);
+}
+
+.toast__close:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}
 
 /* ---- Reduced motion ---- */
 @media (prefers-reduced-motion: reduce) {

@@ -6,6 +6,7 @@ export const zh: Messages = {
   "toolbar.openOfficial": "在官网打开",
   "toolbar.settings": "设置",
   "toolbar.settingsOpen": "打开设置",
+  "toolbar.settingsUpdateAvailable": "有可用更新 — 打开设置",
   loading: "正在加载…",
   "providerSelect.aria": "选择 AI 服务",
   "error.slowTitle": "加载较慢",
@@ -92,7 +93,6 @@ export const zh: Messages = {
   "settings.openRelease": "查看发布页",
   "settings.downloadUpdate": "下载更新",
   "settings.updateCheckFailed": "无法检查更新",
-  "settings.updateCheckHint": "与 GitHub 最新 Release 对比。",
   "shortcut.unbound": "未绑定",
   "common.close": "关闭",
 };

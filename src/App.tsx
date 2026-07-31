@@ -21,6 +21,10 @@ import {
 import { MSG } from "./messages";
 import { useI18n } from "./i18n";
 import { openSettingsPage } from "./shortcuts";
+import {
+  checkLatestReleaseCached,
+  isUpdateAvailable,
+} from "./updateCheck";
 import { ProviderFrame } from "./components/ProviderFrame";
 import { ProviderSelector } from "./components/ProviderSelector";
 import { ErrorOverlay, type OverlayMode } from "./components/ErrorOverlay";
@@ -56,6 +60,8 @@ export default function App() {
   );
   const [onboardingVisible, setOnboardingVisible] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
+  /** True when GitHub has a newer release — iOS-style badge on settings. */
+  const [updateAvailable, setUpdateAvailable] = useState(false);
 
   const activeRef = useRef(active);
   activeRef.current = active;
@@ -228,6 +234,22 @@ export default function App() {
     };
   }, [bootstrapped, enabled, active]);
 
+  // Quiet GitHub release check → badge on settings gear when upgrade is available.
+  useEffect(() => {
+    if (!bootstrapped) return;
+    let cancelled = false;
+
+    (async () => {
+      const result = await checkLatestReleaseCached();
+      if (cancelled) return;
+      setUpdateAvailable(isUpdateAvailable(result));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [bootstrapped]);
+
   useEffect(() => {
     const handleOnline = () => setOnline(true);
     const handleOffline = () => setOnline(false);
@@ -371,12 +393,25 @@ export default function App() {
           </button>
           <button
             type="button"
-            className="toolbar__btn"
+            className="toolbar__btn toolbar__btn--settings"
             onClick={openSettingsPage}
-            title={t("toolbar.settings")}
-            aria-label={t("toolbar.settingsOpen")}
+            title={
+              updateAvailable
+                ? t("toolbar.settingsUpdateAvailable")
+                : t("toolbar.settings")
+            }
+            aria-label={
+              updateAvailable
+                ? t("toolbar.settingsUpdateAvailable")
+                : t("toolbar.settingsOpen")
+            }
           >
             <Settings size={15} strokeWidth={2} />
+            {updateAvailable ? (
+              <span className="toolbar__badge" aria-hidden>
+                1
+              </span>
+            ) : null}
           </button>
         </div>
       </header>

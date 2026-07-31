@@ -43,14 +43,14 @@ export function OnboardingTip({
       <div className="onboarding-tip__actions">
         <button
           type="button"
-          className="onboarding-tip__btn"
+          className="onboarding-tip__btn onboarding-tip__btn--primary"
           onClick={handleOpenShortcuts}
         >
           {t("onboarding.openShortcuts")}
         </button>
         <button
           type="button"
-          className="onboarding-tip__btn onboarding-tip__btn--dismiss"
+          className="onboarding-tip__btn onboarding-tip__btn--ghost"
           onClick={onDismiss}
         >
           {t("onboarding.dismiss")}

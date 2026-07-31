@@ -22,7 +22,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowUpCircle,
-  Download,
   ExternalLink,
   Github,
   Keyboard,
@@ -66,16 +65,11 @@ import {
   type CommandInfo,
 } from "../shortcuts";
 import {
-  checkLatestRelease,
+  checkLatestReleaseCached,
   getInstalledVersion,
-  type UpdateCheckResult,
 } from "../updateCheck";
 import { DEFAULT_CUSTOM_ICON, IconPicker } from "./IconPicker";
-
-type UpdateUiState =
-  | { kind: "idle" }
-  | { kind: "checking" }
-  | { kind: "result"; result: UpdateCheckResult };
+import { ToastViewport, useToast } from "./Toast";
 
 export interface SettingsPanelProps {
   open: boolean;
@@ -181,11 +175,10 @@ export function SettingsPanel({
   const isPage = variant === "page";
   const { t, localeMode, setLocaleMode } = useI18n();
   const { themeMode, setThemeMode } = useTheme();
+  const { toasts, showToast, dismissToast } = useToast();
   const [actionShortcut, setActionShortcut] = useState<string | null>(null);
   const [commands, setCommands] = useState<CommandInfo[]>([]);
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
-  const [toggleHint, setToggleHint] = useState<string | null>(null);
   const [persistSessions, setPersistSessions] = useState(false);
 
   const [addingCustom, setAddingCustom] = useState(false);
@@ -193,14 +186,11 @@ export function SettingsPanel({
   const [customUrl, setCustomUrl] = useState("");
   const [customIcon, setCustomIcon] =
     useState<ProviderIcon>(DEFAULT_CUSTOM_ICON);
-  const [formError, setFormError] = useState<string | null>(null);
 
   const [installedVersion, setInstalledVersion] = useState(() =>
     getInstalledVersion()
   );
-  const [updateState, setUpdateState] = useState<UpdateUiState>({
-    kind: "idle",
-  });
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
 
   const panelRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
@@ -216,7 +206,6 @@ export function SettingsPanel({
     setCustomName("");
     setCustomUrl("");
     setCustomIcon(DEFAULT_CUSTOM_ICON);
-    setFormError(null);
   }, []);
 
   const refresh = useCallback(async () => {
@@ -228,21 +217,22 @@ export function SettingsPanel({
       ]);
       setActionShortcut(sc);
       setCommands(all);
-      setStatus(null);
     } catch {
-      setStatus(t("settings.cannotReadShortcut"));
+      showToast({
+        message: t("settings.cannotReadShortcut"),
+        variant: "error",
+      });
     } finally {
       setBusy(false);
     }
-  }, [t]);
+  }, [t, showToast]);
 
   useEffect(() => {
     if (!open) return;
     void refresh();
-    setToggleHint(null);
     resetCustomForm();
     setInstalledVersion(getInstalledVersion());
-    setUpdateState({ kind: "idle" });
+    setCheckingUpdate(false);
     void loadPersistSessions().then(setPersistSessions);
 
     const onVis = () => {
@@ -358,49 +348,86 @@ export function SettingsPanel({
 
   const handleConfigure = async () => {
     setBusy(true);
-    setStatus(t("settings.openingShortcuts"));
+    showToast({
+      message: t("settings.openingShortcuts"),
+      variant: "info",
+    });
     const result = await openShortcutSettings();
     setBusy(false);
     if (result === "ok") {
-      setStatus(t("settings.openedShortcuts"));
+      showToast({
+        message: t("settings.openedShortcuts"),
+        variant: "success",
+      });
     } else {
-      setStatus(t("settings.cannotOpenShortcuts", { url: SHORTCUTS_URL }));
+      showToast({
+        message: t("settings.cannotOpenShortcuts", { url: SHORTCUTS_URL }),
+        variant: "error",
+      });
     }
   };
 
   const handleCheckUpdate = useCallback(async () => {
-    setUpdateState({ kind: "checking" });
+    setCheckingUpdate(true);
     try {
-      const result = await checkLatestRelease();
-      setUpdateState({ kind: "result", result });
+      // force: refresh cache so the side-panel settings badge stays in sync
+      const result = await checkLatestReleaseCached({ force: true });
+      if (result.status === "upToDate") {
+        showToast({
+          message: t("settings.upToDate"),
+          variant: "success",
+        });
+      } else if (result.status === "updateAvailable") {
+        const version =
+          result.latestVersion ?? result.installedVersion;
+        const releaseUrl = result.releaseUrl;
+        showToast({
+          message: t("settings.updateAvailable", { version }),
+          variant: "warning",
+          durationMs: releaseUrl ? 0 : 6000,
+          action: releaseUrl
+            ? {
+                label: t("settings.openRelease"),
+                onClick: () => {
+                  void openExternalUrl(releaseUrl);
+                },
+              }
+            : undefined,
+        });
+      } else {
+        showToast({
+          message: result.message || t("settings.updateCheckFailed"),
+          variant: "error",
+        });
+      }
     } catch {
-      setUpdateState({
-        kind: "result",
-        result: {
-          status: "error",
-          installedVersion: getInstalledVersion(),
-        },
+      showToast({
+        message: t("settings.updateCheckFailed"),
+        variant: "error",
       });
+    } finally {
+      setCheckingUpdate(false);
     }
-  }, []);
+  }, [showToast, t]);
 
   const toggleProvider = (id: string) => {
     const isOn = enabledSet.has(id);
     if (isOn) {
       if (enabledCount <= MIN_ENABLED_PROVIDERS) {
-        setToggleHint(
-          t("settings.minOne", { min: MIN_ENABLED_PROVIDERS })
-        );
+        showToast({
+          message: t("settings.minOne", { min: MIN_ENABLED_PROVIDERS }),
+          variant: "warning",
+        });
         return;
       }
-      setToggleHint(null);
       void onEnabledChange(enabledProviders.filter((p) => p !== id));
       return;
     }
     if (enabledCount >= MAX_ENABLED_PROVIDERS) {
-      setToggleHint(
-        t("settings.maxFour", { max: MAX_ENABLED_PROVIDERS })
-      );
+      showToast({
+        message: t("settings.maxFour", { max: MAX_ENABLED_PROVIDERS }),
+        variant: "warning",
+      });
       return;
     }
     const nextSet = new Set([...enabledProviders, id]);
@@ -414,7 +441,6 @@ export function SettingsPanel({
     if (!isBuiltinProviderId(id) && !customIds.includes(id)) {
       customIds.push(id);
     }
-    setToggleHint(null);
     void onEnabledChange([...builtins, ...customIds]);
   };
 
@@ -425,17 +451,22 @@ export function SettingsPanel({
     if (enabledSet.has(id)) {
       void onEnabledChange(enabledProviders.filter((p) => p !== id));
     }
-    setToggleHint(null);
   };
 
   const handleSaveCustom = () => {
     const name = customName.trim();
     if (!name) {
-      setFormError(t("settings.customInvalidName"));
+      showToast({
+        message: t("settings.customInvalidName"),
+        variant: "error",
+      });
       return;
     }
     if (!isValidHttpUrl(customUrl)) {
-      setFormError(t("settings.customInvalidUrl"));
+      showToast({
+        message: t("settings.customInvalidUrl"),
+        variant: "error",
+      });
       return;
     }
     const created = createCustomProvider({
@@ -451,10 +482,6 @@ export function SettingsPanel({
   };
 
   if (!open) return null;
-
-  const updateResult =
-    updateState.kind === "result" ? updateState.result : null;
-  const isCheckingUpdate = updateState.kind === "checking";
 
   const langOptions: { mode: LocaleMode; label: string }[] = [
     { mode: "auto", label: t("settings.langAuto") },
@@ -474,6 +501,7 @@ export function SettingsPanel({
 
   return (
     <div className="settings-layer" role="presentation">
+      <ToastViewport toasts={toasts} onDismiss={dismissToast} />
       {!isPage ? (
         <button
           type="button"
@@ -647,11 +675,6 @@ export function SettingsPanel({
               );
             })}
           </ul>
-          {toggleHint ? (
-            <p className="settings-status" role="status">
-              {toggleHint}
-            </p>
-          ) : null}
         </section>
 
         <section className="settings-section">
@@ -666,7 +689,6 @@ export function SettingsPanel({
                 className="settings-btn settings-btn--add"
                 onClick={() => {
                   setAddingCustom(true);
-                  setFormError(null);
                 }}
               >
                 <Plus size={14} strokeWidth={2} aria-hidden />
@@ -757,7 +779,6 @@ export function SettingsPanel({
                   value={customName}
                   onChange={(e) => {
                     setCustomName(e.target.value);
-                    setFormError(null);
                   }}
                   autoComplete="off"
                   maxLength={48}
@@ -773,7 +794,6 @@ export function SettingsPanel({
                   value={customUrl}
                   onChange={(e) => {
                     setCustomUrl(e.target.value);
-                    setFormError(null);
                   }}
                   placeholder="https://"
                   autoComplete="off"
@@ -786,11 +806,6 @@ export function SettingsPanel({
                 </span>
                 <IconPicker value={customIcon} onChange={setCustomIcon} />
               </div>
-              {formError ? (
-                <p className="settings-status" role="status">
-                  {formError}
-                </p>
-              ) : null}
               <div className="settings-actions">
                 <button
                   type="button"
@@ -891,12 +906,6 @@ export function SettingsPanel({
             </button>
           </div>
 
-          {status ? (
-            <p className="settings-status" role="status">
-              {status}
-            </p>
-          ) : null}
-
           <p className="settings-footnote">{t("settings.shortcutFootnote")}</p>
         </section>
 
@@ -919,103 +928,39 @@ export function SettingsPanel({
         ) : null}
 
         <section className="settings-section">
-          <div className="settings-section__heading">
-            <div className="settings-section__label">
-              <ArrowUpCircle size={14} strokeWidth={2} aria-hidden />
-              <span>{t("settings.aboutTitle")}</span>
-            </div>
+          <div className="settings-section__label">
+            <ArrowUpCircle size={14} strokeWidth={2} aria-hidden />
+            <span>{t("settings.aboutTitle")}</span>
           </div>
-          <ul className="settings-provider-list">
-            <li className="settings-provider-list__item">
-              <span className="settings-provider-list__meta">
-                <span className="settings-provider-list__name">
-                  {t("settings.currentVersion")}
-                </span>
+          <div className="settings-about-row">
+            <div className="settings-about-row__meta">
+              <span className="settings-about-row__label">
+                {t("settings.currentVersion")}
               </span>
-              <code className="settings-version" title={t("settings.version")}>
+              <code
+                className="settings-version"
+                title={t("settings.version")}
+              >
                 {installedVersion}
               </code>
-            </li>
-          </ul>
-          <p className="settings-footnote settings-footnote--tight">
-            {t("settings.updateCheckHint")}
-          </p>
-          <div className="settings-actions">
+            </div>
             <button
               type="button"
               className="settings-btn"
               onClick={() => void handleCheckUpdate()}
-              disabled={isCheckingUpdate}
+              disabled={checkingUpdate}
             >
               <RefreshCw
                 size={14}
                 strokeWidth={2}
                 aria-hidden
-                className={isCheckingUpdate ? "is-spinning" : undefined}
+                className={checkingUpdate ? "is-spinning" : undefined}
               />
-              {isCheckingUpdate
+              {checkingUpdate
                 ? t("settings.checkingUpdate")
                 : t("settings.checkUpdate")}
             </button>
           </div>
-          {updateResult?.status === "upToDate" ? (
-            <p
-              className="settings-update-status settings-update-status--ok"
-              role="status"
-            >
-              {t("settings.upToDate")}
-            </p>
-          ) : null}
-          {updateResult?.status === "updateAvailable" ? (
-            <div className="settings-update-result">
-              <p
-                className="settings-update-status settings-update-status--warn"
-                role="status"
-              >
-                {t("settings.updateAvailable", {
-                  version:
-                    updateResult.latestVersion ??
-                    updateResult.installedVersion,
-                })}
-              </p>
-              <div className="settings-actions">
-                {updateResult.releaseUrl ? (
-                  <button
-                    type="button"
-                    className="settings-btn settings-btn--primary"
-                    onClick={() => {
-                      const url = updateResult.releaseUrl;
-                      if (url) void openExternalUrl(url);
-                    }}
-                  >
-                    <ExternalLink size={14} strokeWidth={2} aria-hidden />
-                    {t("settings.openRelease")}
-                  </button>
-                ) : null}
-                {updateResult.downloadUrl ? (
-                  <button
-                    type="button"
-                    className="settings-btn"
-                    onClick={() => {
-                      const url = updateResult.downloadUrl;
-                      if (url) void openExternalUrl(url);
-                    }}
-                  >
-                    <Download size={14} strokeWidth={2} aria-hidden />
-                    {t("settings.downloadUpdate")}
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-          {updateResult?.status === "error" ? (
-            <p
-              className="settings-update-status settings-update-status--error"
-              role="status"
-            >
-              {updateResult.message || t("settings.updateCheckFailed")}
-            </p>
-          ) : null}
         </section>
 
         <section className="settings-section">

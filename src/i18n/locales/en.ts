@@ -6,6 +6,7 @@ export const en: Messages = {
   "toolbar.openOfficial": "Open official site",
   "toolbar.settings": "Settings",
   "toolbar.settingsOpen": "Open settings",
+  "toolbar.settingsUpdateAvailable": "Update available — open settings",
   loading: "Loading…",
   "providerSelect.aria": "Select AI service",
   "error.slowTitle": "Slow to load",
@@ -94,7 +95,6 @@ export const en: Messages = {
   "settings.openRelease": "View release",
   "settings.downloadUpdate": "Download update",
   "settings.updateCheckFailed": "Could not check for updates",
-  "settings.updateCheckHint": "Compares with the latest GitHub Release.",
   "shortcut.unbound": "Not bound",
   "common.close": "Close",
 };
