@@ -1,11 +1,11 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import {
   isBuiltinProviderId,
   type ProviderConfig,
   type ProviderIcon,
   type BuiltinProviderId,
 } from "../providers";
-import type { LobeIconId } from "./iconCatalog";
+import { isMonoLobeIcon, type LobeIconId } from "./iconCatalog";
 import {
   ClaudeIcon,
   DeepSeekIcon,
@@ -19,6 +19,41 @@ import {
 
 export type { ProviderIcon };
 
+/** Brand green — fixed accent, not theme-inverted. */
+const OPENAI_BRAND = "#10a37f";
+
+/**
+ * Wrap mono (black / currentColor) SVGs so dark mode can recolor them via CSS.
+ * Color brands stay unwrapped / use fixed fills.
+ */
+function wrapProviderIcon(
+  node: ReactNode,
+  opts: { mono: boolean; size: number }
+): ReactNode {
+  const style: CSSProperties = {
+    width: opts.size,
+    height: opts.size,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    lineHeight: 0,
+  };
+  return (
+    <span
+      className={
+        opts.mono
+          ? "provider-icon provider-icon--mono"
+          : "provider-icon provider-icon--color"
+      }
+      style={style}
+      aria-hidden
+    >
+      {node}
+    </span>
+  );
+}
+
 function LobeBrandIcon({
   id,
   size = 16,
@@ -28,38 +63,47 @@ function LobeBrandIcon({
   size?: number;
   title?: string;
 }): ReactNode {
+  const mono = isMonoLobeIcon(id);
+  let mark: ReactNode;
+
   switch (id as LobeIconId) {
     case "perplexity":
-      return <PerplexityIcon size={size} title={title ?? "Perplexity"} />;
+      mark = <PerplexityIcon size={size} title={title ?? "Perplexity"} />;
+      break;
     case "openai":
-      return (
+      mark = (
         <OpenAIIcon
           size={size}
           title={title ?? "OpenAI"}
-          style={{ color: "#10a37f" }}
+          style={{ color: OPENAI_BRAND }}
         />
       );
+      break;
     case "deepseek":
-      return <DeepSeekIcon size={size} title={title ?? "DeepSeek"} />;
+      mark = <DeepSeekIcon size={size} title={title ?? "DeepSeek"} />;
+      break;
     case "grok":
-      return (
-        <GrokIcon
-          size={size}
-          title={title ?? "Grok"}
-          style={{ color: "#111111" }}
-        />
-      );
+      // currentColor only — ink comes from .provider-icon--mono theme rules
+      mark = <GrokIcon size={size} title={title ?? "Grok"} />;
+      break;
     case "claude":
-      return <ClaudeIcon size={size} title={title ?? "Claude"} />;
+      mark = <ClaudeIcon size={size} title={title ?? "Claude"} />;
+      break;
     case "gemini":
-      return <GeminiIcon size={size} title={title ?? "Gemini"} />;
+      mark = <GeminiIcon size={size} title={title ?? "Gemini"} />;
+      break;
     case "meta":
-      return <MetaIcon size={size} title={title ?? "Meta"} />;
+      mark = <MetaIcon size={size} title={title ?? "Meta"} />;
+      break;
     case "generic":
-      return <GenericIcon size={size} title={title ?? "AI"} />;
+      mark = <GenericIcon size={size} title={title ?? "AI"} />;
+      break;
     default:
-      return <GenericIcon size={size} title={title ?? "AI"} />;
+      mark = <GenericIcon size={size} title={title ?? "AI"} />;
+      break;
   }
+
+  return wrapProviderIcon(mark, { mono, size });
 }
 
 /** Builtin provider → lobe brand mark (legacy helper). */

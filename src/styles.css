@@ -2003,6 +2003,45 @@ html[data-theme="dark"] .settings-page .settings-icon-btn:hover {
   justify-content: center;
 }
 
+/*
+ * Provider brand icons
+ * - --color: multi-color / fixed brand fills (no invert)
+ * - --mono: black / currentColor SVGs — light = dark ink, dark = light ink
+ *   Works for any mono mark that uses fill="currentColor".
+ *   Hard-black paths can also use filter invert via --mono-hard.
+ */
+.provider-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.provider-icon svg {
+  display: block;
+}
+
+/* Mono / black marks follow UI ink (Grok, Claude, Gemini, Meta, Generic, …) */
+.provider-icon--mono {
+  color: #111111;
+}
+
+[data-theme="dark"] .provider-icon--mono,
+html[data-theme="dark"] .provider-icon--mono {
+  color: #f3f4f6;
+}
+
+/*
+ * Escape hatch: baked black fills that ignore currentColor.
+ * Apply class "provider-icon--mono-hard" in addition to --mono.
+ */
+[data-theme="dark"] .provider-icon--mono-hard,
+html[data-theme="dark"] .provider-icon--mono-hard {
+  color: #111111;
+  filter: invert(1);
+}
+
 /* iOS-like switch (tokenized for light/dark) */
 .settings-switch {
   position: relative;
