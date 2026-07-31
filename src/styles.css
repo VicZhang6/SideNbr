@@ -715,11 +715,9 @@ html[data-theme="dark"] .settings-page-body {
   background: transparent;
 }
 
-/* Sticky brand header */
+/* Brand header — scrolls with the page (not sticky) */
 .settings-page .settings-panel__header {
-  position: sticky;
-  top: 0;
-  z-index: 5;
+  position: static;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -728,21 +726,8 @@ html[data-theme="dark"] .settings-page-body {
   height: auto;
   min-height: 0;
   border-bottom: none;
-  background: linear-gradient(
-    180deg,
-    #f7f7f7 70%,
-    rgba(247, 247, 247, 0) 100%
-  );
-  backdrop-filter: blur(8px);
-}
-
-[data-theme="dark"] .settings-page .settings-panel__header,
-html[data-theme="dark"] .settings-page .settings-panel__header {
-  background: linear-gradient(
-    180deg,
-    #0f0f0f 65%,
-    rgba(15, 15, 15, 0) 100%
-  );
+  background: transparent;
+  backdrop-filter: none;
 }
 
 .settings-page .settings-panel__header--page {
@@ -1052,6 +1037,109 @@ html[data-theme="dark"] .settings-page .settings-provider-list__item {
 .settings-page .settings-provider-list__item > .settings-switch {
   flex: 0 0 auto;
   margin-left: auto;
+}
+
+/* Toolbar order module — drag to reorder */
+.settings-page .settings-order-list {
+  position: relative;
+}
+
+.settings-page .settings-order-list__item {
+  position: relative;
+  cursor: grab;
+  user-select: none;
+  transition:
+    background-color 0.12s ease,
+    opacity 0.12s ease;
+}
+
+.settings-page .settings-order-list__item:active {
+  cursor: grabbing;
+}
+
+.settings-page .settings-order-list__item.is-dragging {
+  opacity: 0.4;
+}
+
+/* Insert marker: line before this row (or before end pad) */
+.settings-page .settings-order-list__item.is-insert-before::before,
+.settings-page .settings-order-list__end.is-insert-before::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: -1px;
+  height: 2px;
+  border-radius: 1px;
+  background: #222222;
+  pointer-events: none;
+  z-index: 2;
+}
+
+[data-theme="dark"] .settings-page .settings-order-list__item.is-insert-before::before,
+[data-theme="dark"] .settings-page .settings-order-list__end.is-insert-before::before,
+html[data-theme="dark"] .settings-page .settings-order-list__item.is-insert-before::before,
+html[data-theme="dark"] .settings-page .settings-order-list__end.is-insert-before::before {
+  background: #9700ec;
+}
+
+/* Hit area after last item so “move to end” always works */
+.settings-page .settings-order-list__end {
+  position: relative;
+  list-style: none;
+  height: 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.settings-page .settings-order-list__handle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 2px;
+  border-radius: 8px;
+  color: #b0b0b0;
+  pointer-events: none;
+}
+
+[data-theme="dark"] .settings-page .settings-order-list__handle,
+html[data-theme="dark"] .settings-page .settings-order-list__handle {
+  color: #6b7385;
+}
+
+.settings-page .settings-order-list__item:hover .settings-order-list__handle {
+  color: #717171;
+}
+
+[data-theme="dark"] .settings-page .settings-order-list__item:hover .settings-order-list__handle,
+html[data-theme="dark"] .settings-page .settings-order-list__item:hover .settings-order-list__handle {
+  color: #9aa3b5;
+}
+
+.settings-page .settings-order-list__index {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.06);
+  color: #717171;
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-theme="dark"] .settings-page .settings-order-list__index,
+html[data-theme="dark"] .settings-page .settings-order-list__index {
+  background: rgba(255, 255, 255, 0.08);
+  color: #a0a0a0;
 }
 
 .settings-page .settings-provider-list__name {
@@ -1504,9 +1592,7 @@ html[data-theme="dark"] .settings-page .settings-icon-btn:hover {
 }
 
 .settings-panel__header {
-  position: sticky;
-  top: 0;
-  z-index: 1;
+  position: static;
   display: flex;
   align-items: center;
   justify-content: space-between;

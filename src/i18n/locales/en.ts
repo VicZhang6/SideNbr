@@ -78,6 +78,11 @@ export const en: Messages = {
   "settings.themeAuto": "System default",
   "settings.themeLight": "Light",
   "settings.themeDark": "Dark",
+  "settings.orderTitle": "Toolbar order",
+  "settings.orderHelp":
+    "Drag to reorder enabled services in the side-panel toolbar.",
+  "settings.orderEmpty": "Enable at least one service first.",
+  "settings.orderDrag": "Drag to reorder",
   "settings.persistTitle": "Keep sessions in background",
   "settings.persistHelp":
     "Keeps AI pages warm in a background window for faster reopen.",

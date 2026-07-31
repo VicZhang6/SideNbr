@@ -81,6 +81,10 @@ export interface Messages {
   "settings.themeAuto": string;
   "settings.themeLight": string;
   "settings.themeDark": string;
+  "settings.orderTitle": string;
+  "settings.orderHelp": string;
+  "settings.orderEmpty": string;
+  "settings.orderDrag": string;
   "settings.persistTitle": string;
   "settings.persistHelp": string;
   "settings.persistOn": string;

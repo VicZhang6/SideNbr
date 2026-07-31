@@ -19,15 +19,23 @@
  * Custom entries may carry an optional `icon` token
  * (`{ kind: "emoji" | "lobe", value }`) alongside optional `iconUrl`.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent,
+} from "react";
 import {
   ArrowUpCircle,
   ExternalLink,
   Github,
+  GripVertical,
   Keyboard,
   Languages,
   Layers,
   Layers2,
+  ListOrdered,
   Monitor,
   Moon,
   Plus,
@@ -44,6 +52,7 @@ import {
   MIN_ENABLED_PROVIDERS,
   PROVIDER_ORDER,
   PROVIDERS,
+  resolveProvider,
   type ProviderConfig,
 } from "../providers";
 import {
@@ -430,18 +439,130 @@ export function SettingsPanel({
       });
       return;
     }
-    const nextSet = new Set([...enabledProviders, id]);
-    const builtins = PROVIDER_ORDER.filter((p) => nextSet.has(p));
-    const customIds: string[] = [];
-    for (const p of enabledProviders) {
-      if (!isBuiltinProviderId(p) && nextSet.has(p) && !customIds.includes(p)) {
-        customIds.push(p);
+    // Append so toolbar order stays user-controlled.
+    void onEnabledChange([...enabledProviders, id]);
+  };
+
+  /**
+   * Drag-and-drop reorder for toolbar order list.
+   * `insertBefore` is 0..length (length = append after last item).
+   */
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
+  const [insertBefore, setInsertBefore] = useState<number | null>(null);
+  const dragFromRef = useRef<number | null>(null);
+  const insertBeforeRef = useRef<number | null>(null);
+
+  const reorderEnabled = useCallback(
+    (from: number, insertAtRaw: number) => {
+      const len = enabledProviders.length;
+      if (from < 0 || from >= len) return;
+
+      let insertBeforeIdx = insertAtRaw;
+      if (insertBeforeIdx < 0) insertBeforeIdx = 0;
+      if (insertBeforeIdx > len) insertBeforeIdx = len;
+
+      // Already in place (before itself or after previous slot).
+      if (insertBeforeIdx === from || insertBeforeIdx === from + 1) return;
+
+      const next = [...enabledProviders];
+      const [item] = next.splice(from, 1);
+      if (item === undefined) return;
+
+      // After removal, indices after `from` shift left by 1.
+      let insertAt = insertBeforeIdx;
+      if (from < insertBeforeIdx) insertAt = insertBeforeIdx - 1;
+      next.splice(insertAt, 0, item);
+
+      // No-op if order unchanged.
+      const same =
+        next.length === enabledProviders.length &&
+        next.every((id, i) => id === enabledProviders[i]);
+      if (same) return;
+
+      void onEnabledChange(next);
+    },
+    [enabledProviders, onEnabledChange]
+  );
+
+  const resolveInsertBefore = (
+    index: number,
+    e: DragEvent<HTMLElement>
+  ): number => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mid = rect.top + rect.height / 2;
+    // Upper half → insert before this row; lower half → after.
+    return e.clientY < mid ? index : index + 1;
+  };
+
+  const onOrderDragStart = (index: number, e: DragEvent) => {
+    dragFromRef.current = index;
+    insertBeforeRef.current = index;
+    setDragFrom(index);
+    setInsertBefore(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(index));
+    try {
+      e.dataTransfer.setData("application/x-sidenbr-order", String(index));
+    } catch {
+      // ignore
+    }
+  };
+
+  const onOrderDragOverRow = (index: number, e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+    const next = resolveInsertBefore(index, e);
+    if (insertBeforeRef.current !== next) {
+      insertBeforeRef.current = next;
+      setInsertBefore(next);
+    }
+  };
+
+  const onOrderDragOverList = (e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    // Pointer past the last row → append at end.
+    const list = e.currentTarget;
+    const last = list.querySelector(
+      ".settings-order-list__item:last-child"
+    ) as HTMLElement | null;
+    if (!last) return;
+    const rect = last.getBoundingClientRect();
+    if (e.clientY >= rect.bottom - 4) {
+      const end = enabledProviders.length;
+      if (insertBeforeRef.current !== end) {
+        insertBeforeRef.current = end;
+        setInsertBefore(end);
       }
     }
-    if (!isBuiltinProviderId(id) && !customIds.includes(id)) {
-      customIds.push(id);
+  };
+
+  const finishOrderDrop = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const raw =
+      e.dataTransfer.getData("application/x-sidenbr-order") ||
+      e.dataTransfer.getData("text/plain");
+    const from =
+      raw !== "" && Number.isFinite(Number(raw))
+        ? Number(raw)
+        : dragFromRef.current;
+    const to = insertBeforeRef.current;
+    if (from !== null && to !== null && Number.isFinite(from)) {
+      reorderEnabled(from, to);
     }
-    void onEnabledChange([...builtins, ...customIds]);
+    dragFromRef.current = null;
+    insertBeforeRef.current = null;
+    setDragFrom(null);
+    setInsertBefore(null);
+  };
+
+  const onOrderDragEnd = () => {
+    dragFromRef.current = null;
+    insertBeforeRef.current = null;
+    setDragFrom(null);
+    setInsertBefore(null);
   };
 
   const handleDeleteCustom = (id: string) => {
@@ -627,6 +748,108 @@ export function SettingsPanel({
               );
             })}
           </div>
+        </section>
+
+        <section className="settings-section">
+          <div className="settings-section__label">
+            <ListOrdered size={14} strokeWidth={2} aria-hidden />
+            <span>{t("settings.orderTitle")}</span>
+          </div>
+          <p className="settings-footnote settings-footnote--tight">
+            {t("settings.orderHelp")}
+          </p>
+          {enabledProviders.length === 0 ? (
+            <p className="settings-footnote settings-footnote--tight">
+              {t("settings.orderEmpty")}
+            </p>
+          ) : (
+            <ul
+              className="settings-provider-list settings-order-list"
+              aria-label={t("settings.orderTitle")}
+              onDragOver={onOrderDragOverList}
+              onDrop={finishOrderDrop}
+            >
+              {enabledProviders.map((id, index) => {
+                const p = resolveProvider(id, customProviders);
+                if (!p) return null;
+                const isDragging = dragFrom === index;
+                // Line above this row when insert target is this index.
+                const showLineBefore =
+                  insertBefore === index &&
+                  dragFrom !== null &&
+                  insertBefore !== dragFrom &&
+                  insertBefore !== dragFrom + 1;
+                return (
+                  <li
+                    key={id}
+                    className={[
+                      "settings-provider-list__item",
+                      "settings-order-list__item",
+                      isDragging ? "is-dragging" : "",
+                      showLineBefore ? "is-insert-before" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    draggable
+                    onDragStart={(e) => onOrderDragStart(index, e)}
+                    onDragOver={(e) => onOrderDragOverRow(index, e)}
+                    onDrop={finishOrderDrop}
+                    onDragEnd={onOrderDragEnd}
+                  >
+                    <span
+                      className="settings-order-list__handle"
+                      title={t("settings.orderDrag")}
+                      aria-hidden
+                    >
+                      <GripVertical size={16} strokeWidth={2} />
+                    </span>
+                    <span className="settings-provider-list__meta">
+                      <span
+                        className="settings-order-list__index"
+                        aria-hidden
+                      >
+                        {index + 1}
+                      </span>
+                      <span
+                        className="settings-provider-list__icon"
+                        aria-hidden
+                      >
+                        <ProviderIconView config={p} size={16} />
+                      </span>
+                      <span className="settings-provider-list__name">
+                        {p.label}
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
+              {/* End drop target so last position is always reachable */}
+              <li
+                className={[
+                  "settings-order-list__end",
+                  insertBefore === enabledProviders.length &&
+                  dragFrom !== null &&
+                  dragFrom !== enabledProviders.length - 1
+                    ? "is-insert-before"
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                aria-hidden
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.dataTransfer.dropEffect = "move";
+                  const end = enabledProviders.length;
+                  if (insertBeforeRef.current !== end) {
+                    insertBeforeRef.current = end;
+                    setInsertBefore(end);
+                  }
+                }}
+                onDrop={finishOrderDrop}
+              />
+            </ul>
+          )}
         </section>
 
         <section className="settings-section">

@@ -254,24 +254,25 @@ export function normalizeCustomProviders(raw: unknown): ProviderConfig[] {
   return out;
 }
 
+/**
+ * Resolve configs in the given id order (toolbar / sort UI).
+ * Unknown ids are skipped.
+ */
 export function orderedProviders(
   ids: Iterable<ProviderId>,
   customProviders: readonly ProviderConfig[] = []
 ): ProviderConfig[] {
-  const set = new Set(ids);
   const result: ProviderConfig[] = [];
-  for (const id of PROVIDER_ORDER) {
-    if (set.has(id)) result.push(PROVIDERS[id]);
-  }
-  for (const c of customProviders) {
-    if (set.has(c.id)) result.push(c);
+  for (const id of ids) {
+    const cfg = resolveProvider(id, customProviders);
+    if (cfg) result.push(cfg);
   }
   return result;
 }
 
 /**
- * Normalize enabled list: unique, known ids (builtin or listed custom),
- * builtins in catalog order then customs in customProviders order,
+ * Normalize enabled list: unique known ids (builtin or listed custom),
+ * **preserves user order** from storage (for toolbar sorting),
  * clamp to [min, max].
  */
 export function normalizeEnabledProviders(
@@ -282,28 +283,37 @@ export function normalizeEnabledProviders(
   const isKnown = (id: string) =>
     isBuiltinProviderId(id) || customIds.has(id);
 
+  const ordered: ProviderId[] = [];
   const seen = new Set<string>();
   if (Array.isArray(raw)) {
     for (const item of raw) {
       if (typeof item === "string" && isKnown(item) && !seen.has(item)) {
         seen.add(item);
+        ordered.push(item);
       }
     }
   }
 
-  let ordered: ProviderId[] = [
-    ...PROVIDER_ORDER.filter((id) => seen.has(id)),
-    ...customProviders.map((p) => p.id).filter((id) => seen.has(id)),
-  ];
-
   if (ordered.length === 0) {
-    ordered = [...DEFAULT_ENABLED_PROVIDERS];
+    return [...DEFAULT_ENABLED_PROVIDERS];
   }
-  if (ordered.length > MAX_ENABLED_PROVIDERS) {
-    ordered = ordered.slice(0, MAX_ENABLED_PROVIDERS);
+
+  let next = ordered;
+  if (next.length > MAX_ENABLED_PROVIDERS) {
+    next = next.slice(0, MAX_ENABLED_PROVIDERS);
   }
-  if (ordered.length < MIN_ENABLED_PROVIDERS) {
-    ordered = [DEFAULT_PROVIDER];
+  if (next.length < MIN_ENABLED_PROVIDERS) {
+    // Pad with catalog defaults without reordering existing picks.
+    for (const id of DEFAULT_ENABLED_PROVIDERS) {
+      if (next.length >= MIN_ENABLED_PROVIDERS) break;
+      if (!seen.has(id)) {
+        seen.add(id);
+        next = [...next, id];
+      }
+    }
+    if (next.length < MIN_ENABLED_PROVIDERS) {
+      next = [DEFAULT_PROVIDER];
+    }
   }
-  return ordered;
+  return next;
 }
