@@ -14,6 +14,8 @@ const ENABLED_PROVIDERS_KEY = "enabledProviders";
 const LOCALE_PREFERENCE_KEY = "localePreference";
 /** Stored theme override: "light" | "dark" | "auto" (or missing = follow system). */
 const THEME_PREFERENCE_KEY = "themePreference";
+/** Keep AI pages warm in a background window. Default false. */
+const PERSIST_SESSIONS_KEY = "persistSessions";
 
 /**
  * Load the last active AI provider from chrome.storage.local.
@@ -55,6 +57,19 @@ export async function loadOnboardingSeen(): Promise<boolean> {
 
 export async function saveOnboardingSeen(seen: boolean = true): Promise<void> {
   await chrome.storage.local.set({ [ONBOARDING_SEEN_KEY]: seen });
+}
+
+/**
+ * Whether to keep AI sessions warm in a background window.
+ * Default false when missing or invalid.
+ */
+export async function loadPersistSessions(): Promise<boolean> {
+  const result = await chrome.storage.local.get(PERSIST_SESSIONS_KEY);
+  return result[PERSIST_SESSIONS_KEY] === true;
+}
+
+export async function savePersistSessions(value: boolean): Promise<void> {
+  await chrome.storage.local.set({ [PERSIST_SESSIONS_KEY]: value });
 }
 
 function isLocale(value: unknown): value is Locale {

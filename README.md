@@ -1,10 +1,21 @@
 # SideNbr
 
-**SideNbr** is a lightweight Chrome Manifest V3 side panel extension that embeds the native web UIs of **Perplexity**, **ChatGPT**, **DeepSeek**, and **Grok** via iframe — while you browse any page.
+<p align="center">
+  <img src="docs/assets/sidenbr-icon.png" alt="SideNbr icon" width="128" height="128" />
+</p>
 
-Local shell only. **No AI API keys. No chat proxy.**
+<p align="center">
+  <strong>SideNbr</strong> is a lightweight Chrome Manifest V3 side panel extension that embeds the native web UIs of <strong>Perplexity</strong>, <strong>ChatGPT</strong>, <strong>DeepSeek</strong>, and <strong>Grok</strong> via iframe — while you browse any page.
+</p>
 
-[中文说明](#中文) · [GitHub](https://github.com/VicZhang6/SideNbr) · [Releases / Download](https://github.com/VicZhang6/SideNbr/releases) · License: MIT
+<p align="center">Local shell only. <strong>No AI API keys. No chat proxy.</strong></p>
+
+<p align="center">
+  <a href="#中文">中文说明</a> ·
+  <a href="https://github.com/VicZhang6/SideNbr">GitHub</a> ·
+  <a href="https://github.com/VicZhang6/SideNbr/releases">Releases / Download</a> ·
+  License: MIT
+</p>
 
 ---
 
@@ -69,8 +80,8 @@ Load the extension:
 
 | Platform          | Suggested default       |
 |-------------------|-------------------------|
-| macOS             | `Command + Shift + A`   |
-| Windows / Linux   | `Alt + Shift + A`       |
+| macOS             | `Option + A`            |
+| Windows / Linux   | `Alt + A`               |
 
 The effective binding is whatever Chrome shows at `chrome://extensions/shortcuts` (it may be empty if another extension claimed the combo). You can also click the extension icon to open or close the panel.
 
@@ -205,6 +216,10 @@ Repository: [https://github.com/VicZhang6/SideNbr](https://github.com/VicZhang6/
 
 ## 中文
 
+<p align="center">
+  <img src="docs/assets/sidenbr-icon.png" alt="SideNbr 图标" width="96" height="96" />
+</p>
+
 **SideNbr** 是一款轻量 **Chrome Manifest V3** 侧边栏扩展：浏览任意网页时，用快捷键打开 Side Panel，通过 iframe 嵌入 **Perplexity**、**ChatGPT**、**DeepSeek**、**Grok** 的官方网页。
 
 仅本地外壳。**无需 AI API Key，不代理聊天流量。**
@@ -253,8 +268,8 @@ npm run build          # Store-safe → dist/
 
 | 平台 | 建议默认 |
 |------|----------|
-| macOS | `Command + Shift + A` |
-| Windows / Linux | `Alt + Shift + A` |
+| macOS | `Option + A` |
+| Windows / Linux | `Alt + A` |
 
 实际绑定以 `chrome://extensions/shortcuts` 为准（可能因冲突未生效）。也可点击扩展图标打开/关闭侧栏。
 

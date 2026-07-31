@@ -10,18 +10,29 @@ import {
   loadActiveProvider,
   loadEnabledProviders,
   loadOnboardingSeen,
+  loadPersistSessions,
   saveActiveProvider,
   saveEnabledProviders,
   saveOnboardingSeen,
 } from "./storage";
+import { MSG } from "./messages";
 import { useI18n } from "./i18n";
 import { ProviderFrame } from "./components/ProviderFrame";
 import { ProviderSelector } from "./components/ProviderSelector";
 import { ErrorOverlay, type OverlayMode } from "./components/ErrorOverlay";
+import { LoadingHint } from "./components/LoadingHint";
 import { OnboardingTip } from "./components/OnboardingTip";
 import { SettingsPanel } from "./components/SettingsPanel";
 
 const SLOW_LOAD_MS = 12_000;
+
+function notifyBackground(message: Record<string, unknown>): void {
+  try {
+    void chrome.runtime.sendMessage(message).catch(() => {});
+  } catch {
+    // Background may not be ready or may lack a listener yet.
+  }
+}
 
 export default function App() {
   const { t } = useI18n();
@@ -51,9 +62,10 @@ export default function App() {
     let cancelled = false;
 
     (async () => {
-      const [enabledList, lastActive] = await Promise.all([
+      const [enabledList, lastActive, persist] = await Promise.all([
         loadEnabledProviders(),
         loadActiveProvider(),
+        loadPersistSessions(),
       ]);
       if (cancelled) return;
 
@@ -75,6 +87,16 @@ export default function App() {
         void saveActiveProvider(nextActive);
       }
 
+      // Optional session-host: warm background window when persist is enabled.
+      if (persist) {
+        notifyBackground({ type: MSG.ENSURE_SESSION_HOST });
+        notifyBackground({
+          type: MSG.SYNC_PROVIDERS,
+          enabled: enabledList,
+          active: nextActive,
+        });
+      }
+
       const seen = await loadOnboardingSeen();
       if (!cancelled && !seen) {
         setOnboardingVisible(true);
@@ -85,6 +107,26 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  // Keep background session-host in sync when enabled set or active provider changes.
+  useEffect(() => {
+    if (!bootstrapped) return;
+    let cancelled = false;
+
+    (async () => {
+      const persist = await loadPersistSessions();
+      if (cancelled || !persist) return;
+      notifyBackground({
+        type: MSG.SYNC_PROVIDERS,
+        enabled,
+        active,
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [bootstrapped, enabled, active]);
 
   useEffect(() => {
     const handleOnline = () => setOnline(true);
@@ -280,6 +322,7 @@ export default function App() {
             onClick={() => setSettingsOpen((v) => !v)}
             title={t("toolbar.settings")}
             aria-label={t("toolbar.settingsOpen")}
+            aria-haspopup="dialog"
             aria-expanded={settingsOpen}
           >
             <Settings size={15} strokeWidth={2} />
@@ -298,11 +341,7 @@ export default function App() {
           />
         ))}
 
-        {showLoadingHint ? (
-          <div className="loading-hint" role="status" aria-live="polite">
-            {t("loading")}
-          </div>
-        ) : null}
+        {showLoadingHint ? <LoadingHint /> : null}
 
         <ErrorOverlay
           mode={overlayMode}

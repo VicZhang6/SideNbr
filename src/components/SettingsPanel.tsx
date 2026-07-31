@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ExternalLink,
   Github,
   Keyboard,
   Languages,
   Layers,
+  Layers2,
   Monitor,
   Moon,
   RefreshCw,
@@ -22,6 +23,8 @@ import {
 import { ProviderBrandIcon } from "../icons/providerIcons";
 import { useI18n, type LocaleMode } from "../i18n";
 import { useTheme } from "../theme";
+import { loadPersistSessions, savePersistSessions } from "../storage";
+import { MSG } from "../messages";
 import {
   ACTION_COMMAND,
   formatShortcut,
@@ -40,6 +43,9 @@ export interface SettingsPanelProps {
   onEnabledChange: (next: ProviderId[]) => void | Promise<void>;
 }
 
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 async function openRepo(): Promise<void> {
   try {
     await chrome.tabs.create({ url: REPO_URL });
@@ -53,7 +59,7 @@ async function openRepo(): Promise<void> {
 }
 
 /**
- * Settings drawer: provider enable toggles (1–4), shortcuts, open-source link.
+ * Settings centered modal: provider enable toggles (1–4), shortcuts, open-source link.
  */
 export function SettingsPanel({
   open,
@@ -68,6 +74,11 @@ export function SettingsPanel({
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [toggleHint, setToggleHint] = useState<string | null>(null);
+  const [persistSessions, setPersistSessions] = useState(false);
+
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const unboundLabel = t("shortcut.unbound");
   const enabledSet = new Set(enabledProviders);
@@ -94,6 +105,7 @@ export function SettingsPanel({
     if (!open) return;
     void refresh();
     setToggleHint(null);
+    void loadPersistSessions().then(setPersistSessions);
 
     const onVis = () => {
       if (document.visibilityState === "visible") void refresh();
@@ -106,11 +118,94 @@ export function SettingsPanel({
     };
   }, [open, refresh]);
 
+  const togglePersistSessions = useCallback(async () => {
+    const next = !persistSessions;
+    setPersistSessions(next);
+    try {
+      await savePersistSessions(next);
+      void chrome.runtime
+        .sendMessage({ type: MSG.PERSIST_CHANGED, enabled: next })
+        .catch(() => {});
+      void chrome.runtime
+        .sendMessage({
+          type: next ? MSG.ENSURE_SESSION_HOST : MSG.TEARDOWN_SESSION_HOST,
+        })
+        .catch(() => {});
+    } catch {
+      // Revert UI if save failed
+      setPersistSessions(!next);
+    }
+  }, [persistSessions]);
+
+  // Body scroll lock + focus open/restore while modal is open
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    // Focus close button (or first focusable) after paint
+    const focusTimer = window.setTimeout(() => {
+      const target =
+        closeBtnRef.current ??
+        panelRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR) ??
+        null;
+      target?.focus();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.body.style.overflow = prevOverflow;
+      const prev = previousFocusRef.current;
+      if (prev && typeof prev.focus === "function") {
+        prev.focus();
+      }
+      previousFocusRef.current = null;
     };
+  }, [open]);
+
+  // Escape to close + simple Tab focus trap within dialog
+  useEffect(() => {
+    if (!open) return;
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (e.key !== "Tab" || !panelRef.current) return;
+
+      const focusable = Array.from(
+        panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+      ).filter((el) => !el.hasAttribute("disabled") && el.tabIndex !== -1);
+
+      if (focusable.length === 0) {
+        e.preventDefault();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+
+      if (e.shiftKey) {
+        if (active === first || !panelRef.current.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !panelRef.current.contains(active)) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
@@ -181,7 +276,8 @@ export function SettingsPanel({
         aria-label={t("settings.close")}
         onClick={onClose}
       />
-      <aside
+      <div
+        ref={panelRef}
         className="settings-panel"
         role="dialog"
         aria-modal="true"
@@ -192,6 +288,7 @@ export function SettingsPanel({
             {t("settings.title", { name: PRODUCT_NAME })}
           </h2>
           <button
+            ref={closeBtnRef}
             type="button"
             className="toolbar__btn"
             onClick={onClose}
@@ -328,6 +425,42 @@ export function SettingsPanel({
 
         <section className="settings-section">
           <div className="settings-section__label">
+            <Layers2 size={14} strokeWidth={2} aria-hidden />
+            <span>{t("settings.persistTitle")}</span>
+          </div>
+          <p className="settings-footnote settings-footnote--tight">
+            {t("settings.persistHelp")}
+          </p>
+          <ul className="settings-provider-list">
+            <li className="settings-provider-list__item">
+              <span className="settings-provider-list__meta">
+                <span className="settings-provider-list__name">
+                  {persistSessions
+                    ? t("settings.persistOn")
+                    : t("settings.persistOff")}
+                </span>
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={persistSessions}
+                aria-label={t("settings.persistTitle")}
+                className={
+                  persistSessions
+                    ? "settings-switch is-on"
+                    : "settings-switch"
+                }
+                onClick={() => void togglePersistSessions()}
+              >
+                <span className="settings-switch__knob" />
+              </button>
+            </li>
+          </ul>
+          <p className="settings-footnote">{t("settings.persistWarning")}</p>
+        </section>
+
+        <section className="settings-section">
+          <div className="settings-section__label">
             <Keyboard size={14} strokeWidth={2} aria-hidden />
             <span>{t("settings.shortcutTitle")}</span>
           </div>
@@ -434,7 +567,7 @@ export function SettingsPanel({
             {t("settings.openExtensionDetails")}
           </button>
         </section>
-      </aside>
+      </div>
     </div>
   );
 }

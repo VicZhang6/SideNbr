@@ -393,6 +393,16 @@ body {
   white-space: nowrap;
 }
 
+/* Applied when JS detects any label would truncate — icons only */
+.provider-selector--icons-only .provider-selector__label {
+  display: none;
+}
+
+.provider-selector--icons-only .provider-selector__item {
+  gap: 0;
+  padding: 0 4px;
+}
+
 /* ---- Frame stage ---- */
 .frame-stage {
   position: relative;
@@ -424,24 +434,37 @@ body {
   z-index: 1;
 }
 
+/* Centered loading — text only, glitch via PowerGlitch (no chrome/spinner) */
 .loading-hint {
   position: absolute;
-  top: 12px;
-  left: 50%;
+  inset: 0;
   z-index: 5;
-  transform: translateX(-50%);
-  padding: 6px 14px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 999px;
-  background: var(--loading-bg);
-  box-shadow: var(--shadow-sm);
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   pointer-events: none;
+}
+
+.loading-hint__text {
+  display: inline-block;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   white-space: nowrap;
-  transition: background-color 0.2s ease, border-color 0.2s ease,
-    color 0.2s ease;
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-hint__text {
+    /* PowerGlitch still attaches nodes; keep text readable and calm */
+    animation: none !important;
+  }
 }
 
 /* ---- Error overlay ---- */
@@ -536,13 +559,29 @@ body {
   border-color: transparent;
 }
 
-/* ---- Settings panel ---- */
+/* ---- Settings modal ---- */
+@keyframes settings-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .settings-layer {
   position: absolute;
   inset: 0;
-  z-index: 40;
+  z-index: 50;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top, 0px))
+    max(16px, env(safe-area-inset-right, 0px))
+    max(16px, env(safe-area-inset-bottom, 0px))
+    max(16px, env(safe-area-inset-left, 0px));
   pointer-events: none;
 }
 
@@ -562,18 +601,24 @@ body {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  width: min(100%, 320px);
-  height: 100%;
+  width: min(420px, 100%);
+  max-height: min(85vh, 720px);
+  margin: auto;
   padding: 0 0 12px;
-  border-left: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: 16px;
   background: var(--surface);
-  box-shadow: var(--shadow-panel);
+  box-shadow: var(--shadow-lg);
   pointer-events: auto;
   overflow: auto;
   transition: background-color 0.2s ease, border-color 0.2s ease;
+  animation: settings-panel-in 0.2s ease-out;
 }
 
 .settings-panel__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -582,6 +627,7 @@ body {
   height: 46px;
   padding: 0 10px 0 14px;
   border-bottom: 1px solid var(--border-muted);
+  background: var(--surface);
 }
 
 .settings-panel__title {
@@ -1049,21 +1095,21 @@ body {
     left: 8px;
   }
 
+  .settings-layer {
+    padding: max(12px, env(safe-area-inset-top, 0px))
+      max(12px, env(safe-area-inset-right, 0px))
+      max(12px, env(safe-area-inset-bottom, 0px))
+      max(12px, env(safe-area-inset-left, 0px));
+  }
+
   .settings-panel {
-    width: 100%;
+    width: min(420px, 100%);
+    max-height: min(90vh, 720px);
+    border-radius: 14px;
   }
 }
 
-@media (max-width: 320px) {
-  .provider-selector__label {
-    /* ultra-narrow: icon only */
-    display: none;
-  }
-
-  .provider-selector__item {
-    padding: 0 4px;
-  }
-}
+/* Label hide is driven by ResizeObserver (provider-selector--icons-only). */
 
 /* ---- Reduced motion ---- */
 @media (prefers-reduced-motion: reduce) {

@@ -21,7 +21,7 @@ export const en: Messages = {
   "error.openOfficial": "Open official site",
   "error.dismiss": "Dismiss",
   "onboarding.hint":
-    "You can change the wake shortcut in Settings or at chrome://extensions/shortcuts (macOS: Command+Shift+A, Windows/Linux: Alt+Shift+A).",
+    "You can change the wake shortcut in Settings or at chrome://extensions/shortcuts (macOS: Option+A, Windows/Linux: Alt+A).",
   "onboarding.openShortcuts": "Open shortcut settings",
   "onboarding.dismiss": "Got it",
   "onboarding.aria": "Shortcut tip",
@@ -66,6 +66,13 @@ export const en: Messages = {
   "settings.themeAuto": "System default",
   "settings.themeLight": "Light",
   "settings.themeDark": "Dark",
+  "settings.persistTitle": "Keep sessions in background",
+  "settings.persistHelp":
+    "When enabled, SideNbr keeps AI pages warm in a background window so reopening is faster. Experimental / private use. May use more memory.",
+  "settings.persistOn": "Enabled",
+  "settings.persistOff": "Disabled",
+  "settings.persistWarning":
+    "Background window may appear minimized; do not force-quit it if you want sessions kept.",
   "shortcut.unbound": "Not bound",
   "common.close": "Close",
 };

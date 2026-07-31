@@ -67,6 +67,11 @@ export interface Messages {
   "settings.themeAuto": string;
   "settings.themeLight": string;
   "settings.themeDark": string;
+  "settings.persistTitle": string;
+  "settings.persistHelp": string;
+  "settings.persistOn": string;
+  "settings.persistOff": string;
+  "settings.persistWarning": string;
   "shortcut.unbound": string;
   "common.close": string;
 }

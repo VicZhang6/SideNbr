@@ -21,7 +21,7 @@ export const zh: Messages = {
   "error.openOfficial": "在官网打开",
   "error.dismiss": "关闭提示",
   "onboarding.hint":
-    "可在设置中，或通过 chrome://extensions/shortcuts 修改唤醒快捷键（macOS：Command+Shift+A，Windows/Linux：Alt+Shift+A）。",
+    "可在设置中，或通过 chrome://extensions/shortcuts 修改唤醒快捷键（macOS：Option+A，Windows/Linux：Alt+A）。",
   "onboarding.openShortcuts": "打开快捷键设置",
   "onboarding.dismiss": "知道了",
   "onboarding.aria": "快捷键提示",
@@ -65,6 +65,13 @@ export const zh: Messages = {
   "settings.themeAuto": "跟随系统",
   "settings.themeLight": "浅色",
   "settings.themeDark": "深色",
+  "settings.persistTitle": "后台保持会话",
+  "settings.persistHelp":
+    "开启后，SideNbr 会在后台窗口中保持 AI 页面，再次打开更快。实验性功能，会占用更多内存。",
+  "settings.persistOn": "已开启",
+  "settings.persistOff": "已关闭",
+  "settings.persistWarning":
+    "后台可能出现最小化窗口；若要保持会话请勿强行关闭该窗口。",
   "shortcut.unbound": "未绑定",
   "common.close": "关闭",
 };
