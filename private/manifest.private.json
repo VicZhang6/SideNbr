@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "SideNbr (Private)",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "minimum_chrome_version": "114",
-  "description": "【私有/兼容构建 · 勿上架商店】在 Chrome 侧边栏中切换 Perplexity、ChatGPT、DeepSeek 与 Grok，并可选绕过部分 frame 限制。",
+  "description": "\u3010\u79c1\u6709/\u517c\u5bb9\u6784\u5efa \u00b7 \u52ff\u4e0a\u67b6\u5546\u5e97\u3011\u5728 Chrome \u4fa7\u8fb9\u680f\u4e2d\u5207\u6362 Perplexity\u3001ChatGPT\u3001DeepSeek \u4e0e Grok\uff0c\u5e76\u53ef\u9009\u7ed5\u8fc7\u90e8\u5206 frame \u9650\u5236\u3002",
   "permissions": [
     "sidePanel",
     "storage",
@@ -28,7 +28,10 @@
     "https://*.x.ai/*",
     "https://challenges.cloudflare.com/*"
   ],
-  "optional_host_permissions": ["https://*/*", "http://*/*"],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
   "declarative_net_request": {
     "rule_resources": [
       {
@@ -46,7 +49,7 @@
     "default_path": "sidepanel.html"
   },
   "action": {
-    "default_title": "打开或关闭 SideNbr (Private)"
+    "default_title": "\u6253\u5f00\u6216\u5173\u95ed SideNbr (Private)"
   },
   "commands": {
     "_execute_action": {

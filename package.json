@@ -1,6 +1,6 @@
 {
   "name": "sidenbr",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Chrome side panel for Perplexity and ChatGPT native webpages",
   "type": "module",
