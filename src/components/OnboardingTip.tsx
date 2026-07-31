@@ -1,7 +1,5 @@
 import { openShortcutSettings, SHORTCUTS_URL } from "../shortcuts";
-
-const SHORTCUT_HINT =
-  "可在设置中或 chrome://extensions/shortcuts 修改唤醒快捷键（macOS 建议 Command+Shift+A，Windows/Linux Alt+Shift+A）";
+import { useI18n } from "../i18n";
 
 export interface OnboardingTipProps {
   visible: boolean;
@@ -17,6 +15,8 @@ export function OnboardingTip({
   onDismiss,
   onOpenShortcuts,
 }: OnboardingTipProps) {
+  const { t } = useI18n();
+
   if (!visible) {
     return null;
   }
@@ -34,9 +34,9 @@ export function OnboardingTip({
       className="onboarding-tip"
       role="status"
       aria-live="polite"
-      aria-label="快捷键提示"
+      aria-label={t("onboarding.aria")}
     >
-      <p className="onboarding-tip__text">{SHORTCUT_HINT}</p>
+      <p className="onboarding-tip__text">{t("onboarding.hint")}</p>
       <p className="onboarding-tip__path">
         <code>{SHORTCUTS_URL}</code>
       </p>
@@ -46,14 +46,14 @@ export function OnboardingTip({
           className="onboarding-tip__btn"
           onClick={handleOpenShortcuts}
         >
-          打开快捷键设置
+          {t("onboarding.openShortcuts")}
         </button>
         <button
           type="button"
           className="onboarding-tip__btn onboarding-tip__btn--dismiss"
           onClick={onDismiss}
         >
-          知道了
+          {t("onboarding.dismiss")}
         </button>
       </div>
     </div>

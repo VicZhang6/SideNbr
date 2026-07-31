@@ -1,3 +1,5 @@
+import { useI18n } from "../i18n";
+
 export type OverlayMode = "hidden" | "slow" | "offline" | "blocked";
 
 export interface ErrorOverlayProps {
@@ -7,27 +9,6 @@ export interface ErrorOverlayProps {
   onOpenOfficial: () => void;
   onDismiss?: () => void;
 }
-
-const COPY: Record<
-  Exclude<OverlayMode, "hidden">,
-  { title: string; body: (label: string) => string }
-> = {
-  slow: {
-    title: "加载较慢",
-    body: (label) =>
-      `${label} 页面加载较慢，可能受网络或嵌入限制影响。你可以继续等待，或刷新侧栏 / 在官网打开。`,
-  },
-  offline: {
-    title: "网络已断开",
-    body: () =>
-      "当前设备似乎处于离线状态。请检查网络连接后刷新侧栏，或改在官网打开服务。",
-  },
-  blocked: {
-    title: "无法在侧栏中加载",
-    body: (label) =>
-      `${label} 可能拒绝被嵌入，或加载失败。请尝试刷新侧栏；若仍无法使用，请在官网打开。`,
-  },
-};
 
 /**
  * In-frame error / degraded-state overlay (FR-20..FR-24).
@@ -40,11 +21,25 @@ export function ErrorOverlay({
   onOpenOfficial,
   onDismiss,
 }: ErrorOverlayProps) {
+  const { t } = useI18n();
+
   if (mode === "hidden") {
     return null;
   }
 
-  const { title, body } = COPY[mode];
+  const title =
+    mode === "slow"
+      ? t("error.slowTitle")
+      : mode === "offline"
+        ? t("error.offlineTitle")
+        : t("error.blockedTitle");
+
+  const body =
+    mode === "slow"
+      ? t("error.slowBody", { label: providerLabel })
+      : mode === "offline"
+        ? t("error.offlineBody")
+        : t("error.blockedBody", { label: providerLabel });
 
   return (
     <div
@@ -59,7 +54,7 @@ export function ErrorOverlay({
           {title}
         </h2>
         <p id="error-overlay-body" className="error-overlay__body">
-          {body(providerLabel)}
+          {body}
         </p>
         <div className="error-overlay__actions">
           <button
@@ -67,14 +62,14 @@ export function ErrorOverlay({
             className="error-overlay__btn error-overlay__btn--primary"
             onClick={onReload}
           >
-            刷新侧栏
+            {t("error.reload")}
           </button>
           <button
             type="button"
             className="error-overlay__btn"
             onClick={onOpenOfficial}
           >
-            在官网打开
+            {t("error.openOfficial")}
           </button>
           {onDismiss ? (
             <button
@@ -82,7 +77,7 @@ export function ErrorOverlay({
               className="error-overlay__btn error-overlay__btn--ghost"
               onClick={onDismiss}
             >
-              关闭提示
+              {t("error.dismiss")}
             </button>
           ) : null}
         </div>

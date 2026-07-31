@@ -1,12 +1,23 @@
-import { DEFAULT_PROVIDER, isProviderId, type ProviderId } from "./providers";
+import {
+  DEFAULT_PROVIDER,
+  isProviderId,
+  normalizeEnabledProviders,
+  type ProviderId,
+} from "./providers";
+import type { Locale } from "./i18n/types";
+import type { Theme, ThemeMode } from "./theme/types";
 
 const ACTIVE_PROVIDER_KEY = "activeProvider";
 const ONBOARDING_SEEN_KEY = "onboardingSeen";
+const ENABLED_PROVIDERS_KEY = "enabledProviders";
+/** Stored language override: "en" | "zh" | "auto" (or missing = follow browser). */
+const LOCALE_PREFERENCE_KEY = "localePreference";
+/** Stored theme override: "light" | "dark" | "auto" (or missing = follow system). */
+const THEME_PREFERENCE_KEY = "themePreference";
 
 /**
  * Load the last active AI provider from chrome.storage.local.
  * Falls back to DEFAULT_PROVIDER when missing or invalid.
- * Never reads chat content, cookies, or tokens.
  */
 export async function loadActiveProvider(): Promise<ProviderId> {
   const result = await chrome.storage.local.get(ACTIVE_PROVIDER_KEY);
@@ -17,39 +28,100 @@ export async function loadActiveProvider(): Promise<ProviderId> {
   return DEFAULT_PROVIDER;
 }
 
-/**
- * Persist the active AI provider id only.
- */
 export async function saveActiveProvider(provider: ProviderId): Promise<void> {
   await chrome.storage.local.set({ [ACTIVE_PROVIDER_KEY]: provider });
 }
 
 /**
- * Whether the first-run onboarding tip has been dismissed.
+ * Which providers appear in the toolbar (1–4).
  */
+export async function loadEnabledProviders(): Promise<ProviderId[]> {
+  const result = await chrome.storage.local.get(ENABLED_PROVIDERS_KEY);
+  return normalizeEnabledProviders(result[ENABLED_PROVIDERS_KEY]);
+}
+
+export async function saveEnabledProviders(
+  providers: ProviderId[]
+): Promise<ProviderId[]> {
+  const normalized = normalizeEnabledProviders(providers);
+  await chrome.storage.local.set({ [ENABLED_PROVIDERS_KEY]: normalized });
+  return normalized;
+}
+
 export async function loadOnboardingSeen(): Promise<boolean> {
   const result = await chrome.storage.local.get(ONBOARDING_SEEN_KEY);
   return result[ONBOARDING_SEEN_KEY] === true;
 }
 
-/**
- * Mark the first-run onboarding tip as seen.
- */
 export async function saveOnboardingSeen(seen: boolean = true): Promise<void> {
   await chrome.storage.local.set({ [ONBOARDING_SEEN_KEY]: seen });
 }
 
-export interface ShortcutBinding {
-  /** Command name, e.g. `_execute_action` */
-  name: string;
-  /** Bound shortcut string, or empty if unbound */
-  shortcut: string;
-  description?: string;
+function isLocale(value: unknown): value is Locale {
+  return value === "en" || value === "zh";
+}
+
+/**
+ * Load the user's language preference.
+ * Returns the forced locale, or `null` when following the browser language.
+ */
+export async function loadLocalePreference(): Promise<Locale | null> {
+  const result = await chrome.storage.local.get(LOCALE_PREFERENCE_KEY);
+  const value: unknown = result[LOCALE_PREFERENCE_KEY];
+  if (isLocale(value)) {
+    return value;
+  }
+  // "auto", missing, or invalid → follow browser
+  return null;
+}
+
+/**
+ * Persist language preference.
+ * Pass `"auto"` to clear the override and follow the browser language.
+ */
+export async function saveLocalePreference(
+  locale: Locale | "auto"
+): Promise<void> {
+  if (locale === "auto") {
+    await chrome.storage.local.remove(LOCALE_PREFERENCE_KEY);
+    return;
+  }
+  await chrome.storage.local.set({ [LOCALE_PREFERENCE_KEY]: locale });
+}
+
+function isTheme(value: unknown): value is Theme {
+  return value === "light" || value === "dark";
+}
+
+/**
+ * Load the user's theme preference.
+ * Returns `"light"` | `"dark"`, or `null` when following the system
+ * (`"auto"` / missing / invalid).
+ */
+export async function loadThemePreference(): Promise<ThemeMode | null> {
+  const result = await chrome.storage.local.get(THEME_PREFERENCE_KEY);
+  const value: unknown = result[THEME_PREFERENCE_KEY];
+  if (isTheme(value)) {
+    return value;
+  }
+  // "auto", missing, or invalid → follow system
+  return null;
+}
+
+/**
+ * Persist theme preference.
+ * Pass `"auto"` to clear the override and follow the system color scheme.
+ */
+export async function saveThemePreference(mode: ThemeMode): Promise<void> {
+  if (mode === "auto") {
+    await chrome.storage.local.remove(THEME_PREFERENCE_KEY);
+    return;
+  }
+  await chrome.storage.local.set({ [THEME_PREFERENCE_KEY]: mode });
 }
 
 /**
  * Check whether the extension action shortcut is bound.
- * Returns the shortcut string when bound, null when unbound or unavailable.
  */
 export async function checkShortcutBound(
   commandName: string = "_execute_action"
