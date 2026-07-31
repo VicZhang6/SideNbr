@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "SideNbr",
+  "version": "0.1.2",
+  "minimum_chrome_version": "114",
+  "description": "在 Chrome 侧边栏中切换 Perplexity 与 ChatGPT。",
+  "permissions": ["sidePanel", "storage"],
+  "host_permissions": [
+    "https://perplexity.ai/*",
+    "https://*.perplexity.ai/*",
+    "https://chatgpt.com/*",
+    "https://openai.com/*",
+    "https://*.openai.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "打开或关闭 SideNbr"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+A",
+        "mac": "Command+Shift+A"
+      }
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://perplexity.ai https://*.perplexity.ai https://chatgpt.com https://openai.com https://*.openai.com;"
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}

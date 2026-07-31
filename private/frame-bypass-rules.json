@@ -1,0 +1,53 @@
+[
+  {
+    "id": 1001,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "x-frame-options", "operation": "remove" },
+        { "header": "content-security-policy", "operation": "remove" },
+        { "header": "content-security-policy-report-only", "operation": "remove" },
+        { "header": "x-content-security-policy", "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||perplexity.ai^",
+      "resourceTypes": ["sub_frame"]
+    }
+  },
+  {
+    "id": 1002,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "x-frame-options", "operation": "remove" },
+        { "header": "content-security-policy", "operation": "remove" },
+        { "header": "content-security-policy-report-only", "operation": "remove" },
+        { "header": "x-content-security-policy", "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||chatgpt.com^",
+      "resourceTypes": ["sub_frame"]
+    }
+  },
+  {
+    "id": 1003,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "x-frame-options", "operation": "remove" },
+        { "header": "content-security-policy", "operation": "remove" },
+        { "header": "content-security-policy-report-only", "operation": "remove" },
+        { "header": "x-content-security-policy", "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||openai.com^",
+      "resourceTypes": ["sub_frame"]
+    }
+  }
+]

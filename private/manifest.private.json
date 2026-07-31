@@ -1,0 +1,60 @@
+{
+  "manifest_version": 3,
+  "name": "SideNbr (Private)",
+  "version": "0.1.2",
+  "minimum_chrome_version": "114",
+  "description": "【私有/兼容构建 · 勿上架商店】在 Chrome 侧边栏中切换 Perplexity 与 ChatGPT，并可选绕过部分 frame 限制。",
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess",
+    "browsingData"
+  ],
+  "host_permissions": [
+    "https://perplexity.ai/*",
+    "https://*.perplexity.ai/*",
+    "https://www.perplexity.ai/*",
+    "https://chatgpt.com/*",
+    "https://*.chatgpt.com/*",
+    "https://openai.com/*",
+    "https://*.openai.com/*",
+    "https://challenges.cloudflare.com/*"
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "frame_compatibility",
+        "enabled": true,
+        "path": "frame-bypass-rules.json"
+      }
+    ]
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "打开或关闭 SideNbr (Private)"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+A",
+        "mac": "Command+Shift+A"
+      }
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https: http: data: blob:;"
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}

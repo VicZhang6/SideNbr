@@ -1,0 +1,7 @@
+node_modules/
+dist/
+dist-private/
+.DS_Store
+*.log
+.vite/
+*.tsbuildinfo
