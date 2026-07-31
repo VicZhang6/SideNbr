@@ -6,25 +6,17 @@
  * chrome.storage.session + windows.get rehydrate.
  */
 
+import { MSG } from "./messages";
+
+export { MSG };
+export type SessionHostMessageType = (typeof MSG)[keyof typeof MSG];
+
 const HOST_PATH = "session-host.html";
 const WINDOW_ID_KEY = "sessionHostWindowId";
 const PERSIST_SESSIONS_KEY = "persistSessions";
 const RECREATE_DELAY_MS = 300;
 const DEFAULT_WIDTH = 420;
 const DEFAULT_HEIGHT = 720;
-
-/**
- * Message type strings. Mirror here if src/messages.ts is added later.
- */
-export const MSG = {
-  ENSURE_SESSION_HOST: "ENSURE_SESSION_HOST",
-  TEARDOWN_SESSION_HOST: "TEARDOWN_SESSION_HOST",
-  PERSIST_CHANGED: "PERSIST_CHANGED",
-  SYNC_PROVIDERS: "SYNC_PROVIDERS",
-  GET_PERSIST: "GET_PERSIST",
-} as const;
-
-export type SessionHostMessageType = (typeof MSG)[keyof typeof MSG];
 
 let cachedWindowId: number | null = null;
 let listenersRegistered = false;
@@ -237,13 +229,14 @@ export async function toggleSessionHost(): Promise<void> {
 }
 
 /**
- * Apply panel-action behavior and host lifecycle for persist mode.
- * persist ON  → openPanelOnActionClick false + ensure host
- * persist OFF → openPanelOnActionClick true  + teardown host
+ * Apply host lifecycle for persist mode.
+ * Side panel always opens on action click (settings live there).
+ * Host window stays minimized in the background for warm iframes only.
  */
 export async function syncPersistMode(enabled: boolean): Promise<void> {
+  // Always open Chrome Side Panel on toolbar/shortcut — do not steal the action.
   await chrome.sidePanel.setPanelBehavior({
-    openPanelOnActionClick: !enabled,
+    openPanelOnActionClick: true,
   });
 
   if (enabled) {

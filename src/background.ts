@@ -12,7 +12,6 @@ import {
   getPersistEnabled,
   syncPersistMode,
   teardownSessionHost,
-  toggleSessionHost,
 } from "./session-host-manager";
 
 const FRAME_HEADER_RULES: chrome.declarativeNetRequest.Rule[] = [
@@ -314,13 +313,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 });
 
-/**
- * Action click only fires when openPanelOnActionClick is false
- * (persist mode). Toggles host window show/minimize.
- */
-chrome.action.onClicked.addListener(() => {
-  void toggleSessionHost();
-});
+// openPanelOnActionClick stays true so the side panel (settings + UI) always
+// opens. The session host is a minimized warm-up window only; no action steal.
 
 /**
  * Keep host in sync when user toggles persist or enabled providers
