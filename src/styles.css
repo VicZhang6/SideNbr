@@ -890,20 +890,23 @@ html[data-theme="dark"] .settings-page .settings-footnote--tight {
   min-height: 40px;
   padding: 8px 16px;
   border-radius: 10px;
-  border-color: rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #ffffff;
+  color: #222222;
   font-size: 14px;
   font-weight: 550;
   letter-spacing: -0.01em;
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease,
+    color 0.15s ease,
     transform 0.1s ease,
     box-shadow 0.15s ease;
 }
 
 .settings-page .settings-btn:hover:not(:disabled) {
   border-color: rgba(0, 0, 0, 0.28);
-  background: #fff;
+  background: #ffffff;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
@@ -911,57 +914,91 @@ html[data-theme="dark"] .settings-page .settings-footnote--tight {
   transform: scale(0.98);
 }
 
+/* Selected / primary (light): solid ink */
 .settings-page .settings-btn--primary {
   border-color: transparent;
-  background: #222;
-  color: #fff;
+  background: #222222;
+  color: #ffffff;
   box-shadow: none;
 }
 
 .settings-page .settings-btn--primary:hover:not(:disabled) {
   border-color: transparent;
-  background: #000;
+  background: #000000;
+  color: #ffffff;
   box-shadow: none;
 }
 
+/*
+ * Dark: card is ~#1a1a1a — default buttons must sit above it.
+ * Primary = inverted white chip so language/appearance selection is obvious.
+ */
 [data-theme="dark"] .settings-page .settings-btn,
 html[data-theme="dark"] .settings-page .settings-btn {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: #1a1a1a;
-  color: #f5f5f5;
+  border-color: rgba(255, 255, 255, 0.16);
+  background: #2a2a2a;
+  color: #f0f0f0;
+  box-shadow: none;
 }
 
 [data-theme="dark"] .settings-page .settings-btn:hover:not(:disabled),
 html[data-theme="dark"] .settings-page .settings-btn:hover:not(:disabled) {
   border-color: rgba(255, 255, 255, 0.28);
-  background: #242424;
+  background: #333333;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 [data-theme="dark"] .settings-page .settings-btn--primary,
 html[data-theme="dark"] .settings-page .settings-btn--primary {
-  background: #f5f5f5;
-  color: #111;
+  border-color: transparent;
+  background: #ffffff;
+  color: #111111;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 [data-theme="dark"] .settings-page .settings-btn--primary:hover:not(:disabled),
 html[data-theme="dark"] .settings-page .settings-btn--primary:hover:not(:disabled) {
-  background: #fff;
+  border-color: transparent;
+  background: #f0f0f0;
+  color: #000000;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .settings-page .settings-btn:disabled,
+html[data-theme="dark"] .settings-page .settings-btn:disabled {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #222222;
+  color: #6b6b6b;
+  opacity: 1;
 }
 
 .settings-page .settings-btn--ghost {
   width: 100%;
   min-height: 48px;
   border-color: rgba(0, 0, 0, 0.12);
-  background: #fff;
-  color: #222;
+  background: #ffffff;
+  color: #222222;
   font-weight: 600;
+}
+
+.settings-page .settings-btn--ghost:hover:not(:disabled) {
+  border-color: rgba(0, 0, 0, 0.22);
+  background: #f7f7f7;
 }
 
 [data-theme="dark"] .settings-page .settings-btn--ghost,
 html[data-theme="dark"] .settings-page .settings-btn--ghost {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: #1a1a1a;
-  color: #f5f5f5;
+  border-color: rgba(255, 255, 255, 0.16);
+  background: #2a2a2a;
+  color: #f0f0f0;
+}
+
+[data-theme="dark"] .settings-page .settings-btn--ghost:hover:not(:disabled),
+html[data-theme="dark"] .settings-page .settings-btn--ghost:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.26);
+  background: #333333;
+  color: #ffffff;
 }
 
 /* Provider lists as soft inset rows */
@@ -1028,7 +1065,7 @@ html[data-theme="dark"] .settings-page .settings-provider-list__item {
   height: 28px;
 }
 
-/* Larger switches */
+/* Larger switches — light: gray off / ink on; dark: dim off / light on + dark knob */
 .settings-page .settings-switch {
   width: 48px;
   height: 30px;
@@ -1036,12 +1073,7 @@ html[data-theme="dark"] .settings-page .settings-provider-list__item {
 }
 
 .settings-page .settings-switch.is-on {
-  background: #222;
-}
-
-[data-theme="dark"] .settings-page .settings-switch.is-on,
-html[data-theme="dark"] .settings-page .settings-switch.is-on {
-  background: #f5f5f5;
+  background: #222222;
 }
 
 .settings-page .settings-switch__knob {
@@ -1049,11 +1081,36 @@ html[data-theme="dark"] .settings-page .settings-switch.is-on {
   left: 3px;
   width: 24px;
   height: 24px;
+  background: #ffffff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
 }
 
 .settings-page .settings-switch.is-on .settings-switch__knob {
   transform: translateX(18px);
+  background: #ffffff;
+}
+
+[data-theme="dark"] .settings-page .settings-switch,
+html[data-theme="dark"] .settings-page .settings-switch {
+  background: #3a3f4d;
+}
+
+[data-theme="dark"] .settings-page .settings-switch.is-on,
+html[data-theme="dark"] .settings-page .settings-switch.is-on {
+  background: #f3f4f6;
+}
+
+[data-theme="dark"] .settings-page .settings-switch__knob,
+html[data-theme="dark"] .settings-page .settings-switch__knob {
+  background: #e8eaef;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+/* Light track needs a dark knob so “on” stays visible */
+[data-theme="dark"] .settings-page .settings-switch.is-on .settings-switch__knob,
+html[data-theme="dark"] .settings-page .settings-switch.is-on .settings-switch__knob {
+  background: #111827;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 /* Forms & cards */
@@ -1174,20 +1231,53 @@ html[data-theme="dark"] .settings-page .settings-shortcut-card {
   border-radius: 12px;
   padding: 10px 14px;
   gap: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #ffffff;
+  color: #222222;
+}
+
+.settings-page .settings-repo-link:hover {
+  border-color: rgba(0, 0, 0, 0.22);
+  background: #f7f7f7;
+}
+
+[data-theme="dark"] .settings-page .settings-repo-link,
+html[data-theme="dark"] .settings-page .settings-repo-link {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: #2a2a2a;
+  color: #f0f0f0;
+}
+
+[data-theme="dark"] .settings-page .settings-repo-link:hover,
+html[data-theme="dark"] .settings-page .settings-repo-link:hover {
+  border-color: rgba(255, 255, 255, 0.26);
+  background: #333333;
+  color: #ffffff;
 }
 
 .settings-page .settings-repo-link__badge {
   flex: 0 0 auto;
   margin-left: auto;
-  color: var(--text-muted);
+  color: #717171;
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
 }
 
+[data-theme="dark"] .settings-page .settings-repo-link__badge,
+html[data-theme="dark"] .settings-page .settings-repo-link__badge {
+  color: #a0a0a0;
+}
+
 .settings-page .settings-repo-link__ext {
   flex: 0 0 auto;
   margin-left: 0;
+  color: #717171;
+}
+
+[data-theme="dark"] .settings-page .settings-repo-link__ext,
+html[data-theme="dark"] .settings-page .settings-repo-link__ext {
+  color: #a0a0a0;
 }
 
 .settings-page .settings-status {
@@ -1321,6 +1411,29 @@ html[data-theme="dark"] .settings-page .settings-update-status--warn {
   width: 40px;
   height: 40px;
   border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+  color: #222222;
+}
+
+.settings-page .settings-icon-btn:hover {
+  border-color: rgba(0, 0, 0, 0.2);
+  background: #f7f7f7;
+  color: #111111;
+}
+
+[data-theme="dark"] .settings-page .settings-icon-btn,
+html[data-theme="dark"] .settings-page .settings-icon-btn {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: #2a2a2a;
+  color: #e8e8e8;
+}
+
+[data-theme="dark"] .settings-page .settings-icon-btn:hover,
+html[data-theme="dark"] .settings-page .settings-icon-btn:hover {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: #333333;
+  color: #ffffff;
 }
 
 /* ---- Settings modal ---- */
@@ -1890,7 +2003,7 @@ html[data-theme="dark"] .settings-page .settings-update-status--warn {
   justify-content: center;
 }
 
-/* iOS-like switch */
+/* iOS-like switch (tokenized for light/dark) */
 .settings-switch {
   position: relative;
   flex: 0 0 auto;
@@ -1918,7 +2031,7 @@ html[data-theme="dark"] .settings-page .settings-update-status--warn {
   border-radius: 50%;
   background: var(--switch-knob);
   box-shadow: var(--shadow-knob);
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, background-color 0.15s ease;
 }
 
 .settings-switch.is-on .settings-switch__knob {
@@ -2094,8 +2207,8 @@ html[data-theme="dark"] .settings-page .settings-update-status--warn {
 /* Label hide is driven by ResizeObserver (provider-selector--icons-only). */
 
 /* ---- Toast ----
-   Fixed bottom-right stack for settings (and reusable elsewhere).
-   Card language matches settings: surface, soft border, 12–14px radius, shadow-md. */
+   Clean card (Airbnb-like). Light: white sheet. Dark: elevated surface.
+   Variants use a tiny status dot only — no tinted card fills. */
 .toast-viewport {
   position: fixed;
   right: 20px;
@@ -2104,7 +2217,7 @@ html[data-theme="dark"] .settings-page .settings-update-status--warn {
   display: flex;
   flex-direction: column-reverse;
   align-items: flex-end;
-  gap: 8px;
+  gap: 10px;
   max-width: min(360px, calc(100vw - 40px));
   pointer-events: none;
 }
@@ -2113,58 +2226,82 @@ html[data-theme="dark"] .settings-page .settings-update-status--warn {
   pointer-events: auto;
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  min-width: 220px;
+  min-width: 240px;
   max-width: 360px;
-  padding: 12px 12px 12px 14px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  border-left-width: 3px;
-  background: var(--surface);
-  box-shadow: var(--shadow-md);
-  color: var(--text-strong);
-  animation: toast-in 0.22s ease-out both;
+  padding: 14px 12px 14px 14px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow:
+    0 4px 16px rgba(15, 23, 42, 0.08),
+    0 1px 3px rgba(15, 23, 42, 0.04);
+  color: #222222;
+  animation: toast-in 0.2s ease-out both;
 }
 
-.toast--info {
-  border-left-color: var(--primary);
-  background: color-mix(in srgb, var(--primary-soft) 55%, var(--surface));
+/* Dark: elevated charcoal card, light text, soft border */
+[data-theme="dark"] .toast,
+html[data-theme="dark"] .toast {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #23262f;
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.5),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+  color: #f3f4f6;
 }
 
-.toast--success {
-  border-left-color: #22c55e;
-  background: color-mix(in srgb, rgba(34, 197, 94, 0.12) 70%, var(--surface));
+/* Tiny status dot — no tinted fills */
+.toast::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: #b0b0b0;
 }
 
-.toast--warning {
-  border-left-color: #f59e0b;
-  background: color-mix(in srgb, rgba(245, 158, 11, 0.14) 70%, var(--surface));
+.toast--info::before {
+  background: #717171;
 }
 
-.toast--error {
-  border-left-color: var(--danger);
-  background: color-mix(in srgb, var(--danger-muted) 70%, var(--surface));
+.toast--success::before {
+  background: #008a05;
 }
 
-[data-theme="dark"] .toast--info,
-html[data-theme="dark"] .toast--info {
-  background: color-mix(in srgb, var(--primary-soft) 45%, var(--surface));
+.toast--warning::before {
+  background: #c13515;
 }
 
-[data-theme="dark"] .toast--success,
-html[data-theme="dark"] .toast--success {
-  background: color-mix(in srgb, rgba(34, 197, 94, 0.16) 55%, var(--surface));
+.toast--error::before {
+  background: #c13515;
 }
 
-[data-theme="dark"] .toast--warning,
-html[data-theme="dark"] .toast--warning {
-  background: color-mix(in srgb, rgba(245, 158, 11, 0.16) 55%, var(--surface));
+[data-theme="dark"] .toast::before,
+html[data-theme="dark"] .toast::before {
+  background: #6b7385;
 }
 
-[data-theme="dark"] .toast--error,
-html[data-theme="dark"] .toast--error {
-  background: color-mix(in srgb, var(--danger-muted) 55%, var(--surface));
+[data-theme="dark"] .toast--info::before,
+html[data-theme="dark"] .toast--info::before {
+  background: #9aa3b5;
+}
+
+[data-theme="dark"] .toast--success::before,
+html[data-theme="dark"] .toast--success::before {
+  background: #34d399;
+}
+
+[data-theme="dark"] .toast--warning::before,
+html[data-theme="dark"] .toast--warning::before {
+  background: #fbbf24;
+}
+
+[data-theme="dark"] .toast--error::before,
+html[data-theme="dark"] .toast--error::before {
+  background: #f87171;
 }
 
 .toast__body {
@@ -2174,30 +2311,36 @@ html[data-theme="dark"] .toast--error {
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
+  padding-top: 1px;
 }
 
 .toast__message {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 13.5px;
+  line-height: 1.4;
   font-weight: 500;
   letter-spacing: -0.01em;
-  color: var(--text-strong);
+  color: #222222;
   word-break: break-word;
+}
+
+[data-theme="dark"] .toast__message,
+html[data-theme="dark"] .toast__message {
+  color: #f3f4f6;
 }
 
 .toast__action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 28px;
-  padding: 4px 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text-strong);
+  min-height: 30px;
+  padding: 5px 12px;
+  border: 1px solid #dddddd;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #222222;
   font: inherit;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 550;
   letter-spacing: -0.01em;
   cursor: pointer;
@@ -2208,18 +2351,41 @@ html[data-theme="dark"] .toast--error {
 }
 
 .toast__action:hover {
-  background: var(--surface-elevated);
-  border-color: var(--border-hover);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  background: #f7f7f7;
+  border-color: #b0b0b0;
 }
 
 .toast__action:active {
   transform: scale(0.98);
+  background: #f0f0f0;
 }
 
 .toast__action:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 1px;
+  outline: 2px solid #222222;
+  outline-offset: 2px;
+}
+
+[data-theme="dark"] .toast__action,
+html[data-theme="dark"] .toast__action {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: #2a2e3a;
+  color: #f3f4f6;
+}
+
+[data-theme="dark"] .toast__action:hover,
+html[data-theme="dark"] .toast__action:hover {
+  background: #323846;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+[data-theme="dark"] .toast__action:active,
+html[data-theme="dark"] .toast__action:active {
+  background: #3a4050;
+}
+
+[data-theme="dark"] .toast__action:focus-visible,
+html[data-theme="dark"] .toast__action:focus-visible {
+  outline-color: #e8eaef;
 }
 
 .toast__close {
@@ -2232,9 +2398,9 @@ html[data-theme="dark"] .toast--error {
   margin: -2px -2px 0 0;
   padding: 0;
   border: none;
-  border-radius: 8px;
+  border-radius: 50%;
   background: transparent;
-  color: var(--text-muted);
+  color: #717171;
   cursor: pointer;
   transition:
     background-color 0.15s ease,
@@ -2242,23 +2408,39 @@ html[data-theme="dark"] .toast--error {
 }
 
 .toast__close:hover {
-  background: var(--hover-bg);
-  color: var(--text-strong);
+  background: #f7f7f7;
+  color: #222222;
 }
 
 .toast__close:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 1px;
+  outline: 2px solid #222222;
+  outline-offset: 2px;
+}
+
+[data-theme="dark"] .toast__close,
+html[data-theme="dark"] .toast__close {
+  color: #9aa3b5;
+}
+
+[data-theme="dark"] .toast__close:hover,
+html[data-theme="dark"] .toast__close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f3f4f6;
+}
+
+[data-theme="dark"] .toast__close:focus-visible,
+html[data-theme="dark"] .toast__close:focus-visible {
+  outline-color: #e8eaef;
 }
 
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
