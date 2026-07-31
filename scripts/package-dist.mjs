@@ -1,16 +1,12 @@
 #!/usr/bin/env node
 /**
- * Zip dist/ into artifacts/SideNbr-*.zip for release / local packaging.
+ * Zip dist/ into artifacts/SideNbr-<version>.zip for release / local packaging.
  *
- * Usage (after a build that populates dist/):
- *   node scripts/package-dist.mjs            → SideNbr-store-safe-<version>.zip
- *   node scripts/package-dist.mjs --private  → SideNbr-private-<version>.zip
+ * Usage (after npm run build):
+ *   node scripts/package-dist.mjs
  *
  * Version is read from package.json, falling back to dist/manifest.json
  * then public/manifest.json.
- *
- * Prefer system `zip` CLI (available on GitHub ubuntu-latest and most macOS/Linux).
- * Falls back to a pure Node ZIP writer (no extra deps) if zip is unavailable.
  */
 
 import {
@@ -32,8 +28,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 const DIST = join(ROOT, "dist");
 const ARTIFACTS = join(ROOT, "artifacts");
-
-const isPrivate = process.argv.includes("--private");
 
 function readVersion() {
   try {
@@ -177,8 +171,7 @@ function main() {
   }
 
   const version = readVersion();
-  const kind = isPrivate ? "private" : "store-safe";
-  const zipName = `SideNbr-${kind}-${version}.zip`;
+  const zipName = `SideNbr-${version}.zip`;
 
   mkdirSync(ARTIFACTS, { recursive: true });
   const zipPath = join(ARTIFACTS, zipName);
@@ -208,7 +201,6 @@ function main() {
   const st = statSync(zipPath);
   const sha = createHash("sha256").update(readFileSync(zipPath)).digest("hex");
 
-  console.log(`[package-dist] kind:    ${kind}`);
   console.log(`[package-dist] version: ${version}`);
   console.log(`[package-dist] method:  ${method}`);
   console.log(`[package-dist] files:   ${files.length} under dist/`);

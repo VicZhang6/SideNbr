@@ -1,17 +1,8 @@
-# Release: build store-safe + private zips; upload artifacts;
-# on tag push v* also create a GitHub Release with both packages attached.
+# Release: build one full SideNbr zip; on tag v* attach to GitHub Release.
 #
-# Triggers:
-#   - push tag matching v* (e.g. v0.1.4)
-#   - workflow_dispatch (manual; always uploads artifacts, release only if ref is a v* tag)
+# Zip: SideNbr-<version>.zip
 #
-# Zip names:
-#   SideNbr-store-safe-<version>.zip  — contents of dist/ after npm run build
-#   SideNbr-private-<version>.zip     — contents of dist/ after npm run build:private
-#
-# Version is taken from package.json (see scripts/package-dist.mjs).
-#
-# See docs/DOWNLOAD.md for end-user download / install steps.
+# See docs/DOWNLOAD.md for install steps.
 name: Release
 
 on:
@@ -29,7 +20,7 @@ concurrency:
 
 jobs:
   package:
-    name: Build & package zips
+    name: Build & package
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -53,28 +44,18 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Package version: ${VERSION}"
 
-      - name: Build store-safe
+      - name: Build
         run: npm run build
 
-      - name: Verify store-safe build
+      - name: Verify dist
         run: npm run check-build
 
-      - name: Pack store-safe zip
+      - name: Pack zip
         run: node scripts/package-dist.mjs
-
-      - name: Build private
-        run: npm run build:private
-
-      - name: Verify private build
-        run: node scripts/check-build.mjs --private
-
-      - name: Pack private zip
-        run: node scripts/package-dist.mjs --private
 
       - name: List artifacts
         run: |
           ls -la artifacts/
-          echo "---"
           sha256sum artifacts/*.zip || shasum -a 256 artifacts/*.zip
 
       - name: Upload GitHub Actions artifacts
@@ -95,19 +76,15 @@ jobs:
           body: |
             ## SideNbr ${{ github.ref_name }}
 
-            Pre-built Chrome extension packages (Manifest V3). Unzip and **Load unpacked** from `chrome://extensions` (Developer mode), or pack as needed.
+            Pre-built Chrome extension (Manifest V3). Open-source only — not for Chrome Web Store.
 
-            | Package | Description |
-            |---------|-------------|
-            | `SideNbr-store-safe-${{ steps.meta.outputs.version }}.zip` | Default / store-safe build (no DNR frame bypass) |
-            | `SideNbr-private-${{ steps.meta.outputs.version }}.zip` | Private / compatibility build with DNR header bypass — **not** for Chrome Web Store |
+            1. Download **`SideNbr-${{ steps.meta.outputs.version }}.zip`**
+            2. Unzip
+            3. Chrome → `chrome://extensions` → Developer mode → **Load unpacked**
 
-            Version in `package.json`: **${{ steps.meta.outputs.version }}**
-
-            See [docs/DOWNLOAD.md](https://github.com/VicZhang6/SideNbr/blob/main/docs/DOWNLOAD.md) for install steps (EN / 中文).
+            See [docs/DOWNLOAD.md](https://github.com/VicZhang6/SideNbr/blob/main/docs/DOWNLOAD.md).
           files: |
-            artifacts/SideNbr-store-safe-${{ steps.meta.outputs.version }}.zip
-            artifacts/SideNbr-private-${{ steps.meta.outputs.version }}.zip
+            artifacts/SideNbr-${{ steps.meta.outputs.version }}.zip
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

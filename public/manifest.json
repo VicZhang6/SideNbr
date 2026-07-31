@@ -1,17 +1,22 @@
 {
   "manifest_version": 3,
   "name": "SideNbr",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "minimum_chrome_version": "114",
-  "description": "\u5728 Chrome \u4fa7\u8fb9\u680f\u4e2d\u5207\u6362 Perplexity\u3001ChatGPT\u3001DeepSeek \u4e0e Grok\u3002",
+  "description": "Chrome side panel for Perplexity, ChatGPT, DeepSeek, Grok, and custom sites.",
   "permissions": [
     "sidePanel",
-    "storage"
+    "storage",
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess",
+    "browsingData"
   ],
   "host_permissions": [
     "https://perplexity.ai/*",
     "https://*.perplexity.ai/*",
+    "https://www.perplexity.ai/*",
     "https://chatgpt.com/*",
+    "https://*.chatgpt.com/*",
     "https://openai.com/*",
     "https://*.openai.com/*",
     "https://chat.deepseek.com/*",
@@ -20,12 +25,22 @@
     "https://grok.com/*",
     "https://*.grok.com/*",
     "https://x.ai/*",
-    "https://*.x.ai/*"
+    "https://*.x.ai/*",
+    "https://challenges.cloudflare.com/*"
   ],
   "optional_host_permissions": [
     "https://*/*",
     "http://*/*"
   ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "frame_compatibility",
+        "enabled": true,
+        "path": "frame-bypass-rules.json"
+      }
+    ]
+  },
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -34,7 +49,7 @@
     "default_path": "sidepanel.html"
   },
   "action": {
-    "default_title": "\u6253\u5f00\u6216\u5173\u95ed SideNbr"
+    "default_title": "Open or close SideNbr"
   },
   "commands": {
     "_execute_action": {

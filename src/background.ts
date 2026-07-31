@@ -1,8 +1,7 @@
 /**
  * Service worker: Side Panel behavior + session host lifecycle +
- * (private build) frame-header bypass.
- * Store-safe builds only use setPanelBehavior / host manager;
- * DNR helpers no-op when permission is missing.
+ * frame-header compatibility (DNR) and session-host lifecycle.
+ * DNR helpers no-op when the permission is unavailable.
  */
 
 import {
@@ -192,7 +191,7 @@ const FRAME_HEADER_RULES: chrome.declarativeNetRequest.Rule[] = [
 ];
 
 /**
- * Private build only: register dynamic DNR rules as a second path
+ * Register dynamic DNR rules as a second path
  * (static rules.json may fail to load silently after partial reloads).
  */
 async function installFrameBypassRules(): Promise<void> {
@@ -212,7 +211,7 @@ async function installFrameBypassRules(): Promise<void> {
 
 /**
  * Cached Service Workers can re-serve framed responses with old CSP/XFO.
- * Private build may declare browsingData; store-safe skips this.
+ * browsingData may be unavailable in some contexts — ignore failures.
  */
 async function clearProviderServiceWorkers(): Promise<void> {
   if (!chrome.browsingData?.remove) {

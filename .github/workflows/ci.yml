@@ -1,4 +1,4 @@
-# CI: typecheck + store-safe build + package verification on main
+# CI: typecheck + full package build verification on main
 name: CI
 
 on:
@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   build:
-    name: Typecheck & store-safe build
+    name: Typecheck & build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -33,8 +33,8 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Build (store-safe)
+      - name: Build
         run: npm run build
 
-      - name: Verify store-safe build
+      - name: Verify dist
         run: npm run check-build

@@ -57,7 +57,11 @@ Typical permissions for the public / Store-safe package:
 
 We do **not** request `<all_urls>`, browsing history, or unrestricted `webRequest` in the Store-safe design.
 
-### Private / compatibility builds (not for the Store)
+### Frame compatibility (open-source package)
+
+The published package may adjust **sub_frame** response headers (e.g. X-Frame-Options / CSP) for known AI hosts so pages can load in the side panel. This is part of the single open-source build and is **not** aimed at Chrome Web Store distribution.
+
+### Other notes
 
 Separately packaged **private** builds may include `declarativeNetRequestWithHostAccess` and local rules that modify certain response headers for **sub_frame** loads only, solely to test embed compatibility. Those builds are **not** intended for Chrome Web Store distribution and must be labeled clearly for the user. See `private/README.md` in the source repository.
 

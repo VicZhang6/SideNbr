@@ -24,12 +24,12 @@
 You do **not** need to compile from source for daily use.
 
 1. Open **[Releases](https://github.com/VicZhang6/SideNbr/releases)**
-2. Download either:
-   - `SideNbr-store-safe-x.y.z.zip` — default / safer for evaluation
-   - `SideNbr-private-x.y.z.zip` — local only (frame-header compatibility; **not** for Chrome Web Store)
+2. Download **`SideNbr-x.y.z.zip`** (single full open-source build)
 3. Unzip → Chrome → Developer mode → **Load unpacked** → select the unzipped folder
 
 Full install steps: [docs/DOWNLOAD.md](./docs/DOWNLOAD.md).
+
+Open-source only — **not** for Chrome Web Store.
 
 ---
 
@@ -44,7 +44,7 @@ Full install steps: [docs/DOWNLOAD.md](./docs/DOWNLOAD.md).
 - **Settings panel** — shortcut status, jump to `chrome://extensions/shortcuts`, provider toggles
 - **i18n EN / ZH** — UI language follows the browser language (can override)
 - **Light / dark theme** — follows system by default; force light or dark in settings
-- **Two builds** — store-safe (default) vs private (local / internal, with DNR frame-header bypass)
+- **Open-source full package** — single build with frame-compatibility rules for side-panel embedding
 
 ---
 
@@ -66,7 +66,7 @@ Requires **Node 20+** and **Chrome 114+**.
 git clone https://github.com/VicZhang6/SideNbr.git
 cd SideNbr
 npm install
-npm run build          # Store-safe → dist/
+npm run build          # Full → dist/
 ```
 
 Load the extension:
@@ -110,33 +110,15 @@ The effective binding is whatever Chrome shows at `chrome://extensions/shortcuts
 
 ---
 
-## Two builds
-
-| | Store-safe | Private (compatibility) |
-|--|------------|-------------------------|
-| Command | `npm run build` | `npm run build:private` |
-| Manifest | `public/manifest.json` (no DNR) | Post-build private manifest overlay |
-| Headers | Unmodified responses | Strip XFO / CSP on **sub_frame** (see `private/`) |
-| Chrome Web Store | Suitable to evaluate for listing | **Do not** ship as the public / store default |
-| Check | `npm run check-build` | `node scripts/check-build.mjs --private` |
+## Build
 
 ```bash
-# Store-safe (default, recommended)
-npm run build
+npm install
+npm run build      # full package → dist/
 npm run check-build
-
-# Private — local / internal only
-npm run build:private
-node scripts/check-build.mjs --private
+npm run pack        # optional: zip → artifacts/SideNbr-<version>.zip
 ```
 
-### Private build warning
-
-The private build uses `declarativeNetRequestWithHostAccess` to remove target sites’ `X-Frame-Options` and related CSP headers on **sub_frame** loads for compatibility testing. That weakens page security constraints and may violate store policies.
-
-Details: [private/README.md](./private/README.md). **Never submit a private build to the Chrome Web Store.**
-
----
 
 ## Tech stack
 
@@ -163,10 +145,9 @@ Full draft: [PRIVACY.md](./PRIVACY.md).
 
 | Script | Description |
 |--------|-------------|
-| `npm run build` | TypeScript + Vite → `dist/` (store-safe) |
-| `npm run build:private` | Same, then apply private manifest + DNR rules |
-| `npm run check-build` | Verify `dist/` files and store-safe permissions |
-| `node scripts/check-build.mjs --private` | Verify a private build |
+| `npm run build` | TypeScript + Vite → `dist/` |
+| `npm run check-build` | Verify `dist/` package |
+| `npm run pack` | Build + check + zip → `artifacts/SideNbr-<version>.zip` |
 | `node scripts/generate-icons.mjs` | Generate PNG icons |
 
 ---
@@ -175,11 +156,11 @@ Full draft: [PRIVACY.md](./PRIVACY.md).
 
 ```
 SideNbr/
-├─ public/                 # Store-safe manifest + icons
-├─ private/                # Private manifest, DNR rules, risk notes
-├─ scripts/                # build check, private apply, icons
+├─ public/                 # manifest, icons, DNR rules
+├─ scripts/                # build check, packaging, icons
 ├─ src/                    # React side panel + background
 ├─ sidepanel.html
+├─ session-host.html
 ├─ PRIVACY.md
 ├─ CONTRIBUTING.md
 ├─ LICENSE
@@ -200,7 +181,7 @@ Issues and pull requests are welcome. Please read [CONTRIBUTING.md](./CONTRIBUTI
 
 Brief norms:
 
-- Contribute toward the **store-safe** path by default; do not merge `private/` rules into the public manifest
+- Contribute toward the **full** path by default; do not merge `private/` rules into the public manifest
 - Stay privacy-first: no chat proxy, no conversation harvesting
 - Keep PRs small and clear; state motivation and how you tested
 
@@ -236,7 +217,7 @@ Repository: [https://github.com/VicZhang6/SideNbr](https://github.com/VicZhang6/
 - **打开官网** — 在新标签页打开对应官方站点
 - **设置面板** — 查看快捷键状态，一键跳转 `chrome://extensions/shortcuts`，管理服务启用
 - **中英文界面** — 跟随浏览器语言（EN / ZH）
-- **两种构建** — Store-safe（默认可评估上架）与 Private（本地/内测，含 DNR 帧头绕过）
+- **开源完整包** — 单一构建，含侧栏嵌入兼容规则
 
 ### 截图
 
@@ -254,7 +235,7 @@ Repository: [https://github.com/VicZhang6/SideNbr](https://github.com/VicZhang6/
 git clone https://github.com/VicZhang6/SideNbr.git
 cd SideNbr
 npm install
-npm run build          # Store-safe → dist/
+npm run build          # Full → dist/
 ```
 
 加载扩展：
@@ -294,31 +275,16 @@ npm run build          # Store-safe → dist/
 
 **隐私优先：** 无自有后端、无聊天日志、无第三方分析 SDK。
 
-### 两种构建
-
-| | Store-safe | Private（兼容） |
-|--|------------|-----------------|
-| 命令 | `npm run build` | `npm run build:private` |
-| Manifest | `public/manifest.json`（无 DNR） | 构建后覆盖为私有 Manifest |
-| 响应头 | 不修改 | 对 **sub_frame** 移除 XFO / CSP（见 `private/`） |
-| Chrome Web Store | 可评估上架 | **禁止**作为公开默认分发 |
-| 检查 | `npm run check-build` | `node scripts/check-build.mjs --private` |
+### 构建
 
 ```bash
-# Store-safe（默认、推荐）
-npm run build
+npm install
+npm run build       # → dist/
 npm run check-build
-
-# Private — 仅本地 / 内测
-npm run build:private
-node scripts/check-build.mjs --private
+npm run pack        # → artifacts/SideNbr-<version>.zip
 ```
 
-#### Private 构建警告
-
-私有构建通过 `declarativeNetRequestWithHostAccess` 在 **sub_frame** 上移除目标站的 `X-Frame-Options` 与 CSP 相关头，用于兼容性验证。这会削弱页面安全约束，且可能触犯商店政策。
-
-详情见 [private/README.md](./private/README.md)。**切勿将 private 构建提交 Chrome Web Store。**
+单一开源完整包（含侧栏嵌入兼容的 DNR 规则）。**仅开源分发，不上架 Chrome 网上应用店。**
 
 ### 技术栈
 
@@ -341,21 +307,20 @@ node scripts/check-build.mjs --private
 
 | 脚本 | 说明 |
 |------|------|
-| `npm run build` | TypeScript + Vite → `dist/`（Store-safe） |
-| `npm run build:private` | 同上，并应用私有 Manifest + DNR 规则 |
-| `npm run check-build` | 检查 `dist/` 文件与 Store-safe 权限 |
-| `node scripts/check-build.mjs --private` | 检查私有构建 |
+| `npm run build` | TypeScript + Vite → `dist/` |
+| `npm run check-build` | 检查 `dist/` |
+| `npm run pack` | 构建并打包 zip |
 | `node scripts/generate-icons.mjs` | 生成 PNG 图标 |
 
 ### 项目结构
 
 ```
 SideNbr/
-├─ public/                 # Store-safe manifest + icons
-├─ private/                # Private manifest, DNR rules, risk notes
-├─ scripts/                # build check, private apply, icons
-├─ src/                    # React side panel + background
+├─ public/                 # manifest、图标、DNR 规则
+├─ scripts/                # 检查、打包、图标
+├─ src/                    # 侧栏 React + background
 ├─ sidepanel.html
+├─ session-host.html
 ├─ PRIVACY.md
 ├─ CONTRIBUTING.md
 ├─ LICENSE
@@ -372,7 +337,7 @@ SideNbr **不是** OpenAI、Perplexity、DeepSeek、xAI 或其他服务商的官
 
 简要约定：
 
-- 默认向 **Store-safe** 路径贡献；勿把 `private/` 规则合并进公开 Manifest
+- 默认向 **Full** 路径贡献；勿把 `private/` 规则合并进公开 Manifest
 - 保持隐私优先：不引入聊天代理、不采集对话内容
 - PR 尽量小而清晰；说明动机与测试方式
 
