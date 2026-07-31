@@ -1,31 +1,40 @@
-import { PROVIDERS, type ProviderId } from "../providers";
+import type { ProviderId } from "../providers";
+import { PROVIDERS } from "../providers";
 import { ProviderBrandIcon } from "../icons/providerIcons";
+import { useI18n } from "../i18n";
 
 export interface ProviderSelectorProps {
   value: ProviderId;
+  /** Enabled providers in catalog order (1–4). */
+  options: ProviderId[];
   onChange: (id: ProviderId) => void;
   disabled?: boolean;
 }
 
 /**
  * Segmented ICON + Label control for switching AI providers.
+ * Only renders enabled options; does not remount iframes (parent owns lifecycle).
  */
 export function ProviderSelector({
   value,
+  options,
   onChange,
   disabled = false,
 }: ProviderSelectorProps) {
+  const { t } = useI18n();
+
   return (
     <div
       className="provider-selector"
       role="tablist"
-      aria-label="选择 AI 服务"
+      aria-label={t("providerSelect.aria")}
     >
-      {Object.values(PROVIDERS).map((provider) => {
-        const selected = provider.id === value;
+      {options.map((id) => {
+        const provider = PROVIDERS[id];
+        const selected = id === value;
         return (
           <button
-            key={provider.id}
+            key={id}
             type="button"
             role="tab"
             aria-selected={selected}
@@ -35,13 +44,13 @@ export function ProviderSelector({
                 : "provider-selector__item"
             }
             disabled={disabled}
-            onClick={() => onChange(provider.id)}
+            onClick={() => onChange(id)}
             title={provider.label}
           >
             <span className="provider-selector__icon" aria-hidden>
-              <ProviderBrandIcon id={provider.id} size={15} />
+              <ProviderBrandIcon id={id} size={15} />
             </span>
-            <span className="provider-selector__label">{provider.label}</span>
+            <span className="provider-selector__label">{provider.shortLabel}</span>
           </button>
         );
       })}

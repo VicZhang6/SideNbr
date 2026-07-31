@@ -97,6 +97,93 @@ const FRAME_HEADER_RULES: chrome.declarativeNetRequest.Rule[] = [
       resourceTypes: [chrome.declarativeNetRequest.ResourceType.SUB_FRAME],
     },
   },
+  {
+    id: 2004,
+    priority: 1,
+    action: {
+      type: chrome.declarativeNetRequest.RuleActionType.MODIFY_HEADERS,
+      responseHeaders: [
+        {
+          header: "x-frame-options",
+          operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE,
+        },
+        {
+          header: "content-security-policy",
+          operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE,
+        },
+        {
+          header: "content-security-policy-report-only",
+          operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE,
+        },
+        {
+          header: "x-content-security-policy",
+          operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE,
+        },
+      ],
+    },
+    condition: {
+      urlFilter: "||deepseek.com^",
+      resourceTypes: [chrome.declarativeNetRequest.ResourceType.SUB_FRAME],
+    },
+  },
+  {
+    id: 2005,
+    priority: 1,
+    action: {
+      type: chrome.declarativeNetRequest.RuleActionType.MODIFY_HEADERS,
+      responseHeaders: [
+        {
+          header: "x-frame-options",
+          operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE,
+        },
+        {
+          header: "content-security-policy",
+          operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE,
+        },
+        {
+          header: "content-security-policy-report-only",
+          operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE,
+        },
+        {
+          header: "x-content-security-policy",
+          operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE,
+        },
+      ],
+    },
+    condition: {
+      urlFilter: "||grok.com^",
+      resourceTypes: [chrome.declarativeNetRequest.ResourceType.SUB_FRAME],
+    },
+  },
+  {
+    id: 2006,
+    priority: 1,
+    action: {
+      type: chrome.declarativeNetRequest.RuleActionType.MODIFY_HEADERS,
+      responseHeaders: [
+        {
+          header: "x-frame-options",
+          operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE,
+        },
+        {
+          header: "content-security-policy",
+          operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE,
+        },
+        {
+          header: "content-security-policy-report-only",
+          operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE,
+        },
+        {
+          header: "x-content-security-policy",
+          operation: chrome.declarativeNetRequest.HeaderOperation.REMOVE,
+        },
+      ],
+    },
+    condition: {
+      urlFilter: "||x.ai^",
+      resourceTypes: [chrome.declarativeNetRequest.ResourceType.SUB_FRAME],
+    },
+  },
 ];
 
 /**
@@ -136,6 +223,10 @@ async function clearProviderServiceWorkers(): Promise<void> {
           "https://chatgpt.com",
           "https://openai.com",
           "https://www.openai.com",
+          "https://chat.deepseek.com",
+          "https://deepseek.com",
+          "https://grok.com",
+          "https://x.ai",
         ],
       },
       {

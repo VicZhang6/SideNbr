@@ -1,16 +1,23 @@
 {
   "manifest_version": 3,
   "name": "SideNbr",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "minimum_chrome_version": "114",
-  "description": "在 Chrome 侧边栏中切换 Perplexity 与 ChatGPT。",
+  "description": "在 Chrome 侧边栏中切换 Perplexity、ChatGPT、DeepSeek 与 Grok。",
   "permissions": ["sidePanel", "storage"],
   "host_permissions": [
     "https://perplexity.ai/*",
     "https://*.perplexity.ai/*",
     "https://chatgpt.com/*",
     "https://openai.com/*",
-    "https://*.openai.com/*"
+    "https://*.openai.com/*",
+    "https://chat.deepseek.com/*",
+    "https://*.deepseek.com/*",
+    "https://deepseek.com/*",
+    "https://grok.com/*",
+    "https://*.grok.com/*",
+    "https://x.ai/*",
+    "https://*.x.ai/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -31,7 +38,7 @@
     }
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://perplexity.ai https://*.perplexity.ai https://chatgpt.com https://openai.com https://*.openai.com;"
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://perplexity.ai https://*.perplexity.ai https://chatgpt.com https://openai.com https://*.openai.com https://chat.deepseek.com https://*.deepseek.com https://deepseek.com https://grok.com https://*.grok.com https://x.ai https://*.x.ai;"
   },
   "icons": {
     "16": "icons/icon-16.png",

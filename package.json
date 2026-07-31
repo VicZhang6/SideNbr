@@ -1,6 +1,6 @@
 {
   "name": "sidenbr",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "private": true,
   "description": "Chrome side panel for Perplexity and ChatGPT native webpages",
   "type": "module",
@@ -10,7 +10,9 @@
     "build:private": "tsc --noEmit && vite build && node scripts/apply-private-manifest.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit --pretty false",
-    "check-build": "node scripts/check-build.mjs"
+    "check-build": "node scripts/check-build.mjs",
+    "pack": "node scripts/package-dist.mjs",
+    "pack:private": "npm run build:private && node scripts/package-dist.mjs --private"
   },
   "dependencies": {
     "lucide-react": "^0.469.0",

@@ -9,8 +9,10 @@ export interface ProviderFrameProps {
 
 /**
  * Embeds a single AI provider page in an iframe.
- * Does not use sandbox (providers need full web capabilities).
- * Does not read iframe contentDocument (CORS / privacy).
+ * - Parent must use stable key={provider.id} so switching providers does NOT remount.
+ * - Only reloadToken change remounts this iframe (manual refresh).
+ * - Hidden frames stay mounted (display:none) to preserve SPA session state.
+ * - No sandbox; no contentDocument access.
  */
 export function ProviderFrame({
   provider,

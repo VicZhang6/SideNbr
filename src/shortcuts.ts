@@ -99,9 +99,15 @@ export async function openExtensionDetails(): Promise<void> {
   }
 }
 
-/** Pretty-print accelerator for UI (⌘⇧A etc. on mac). */
-export function formatShortcut(raw: string | null | undefined): string {
-  if (!raw) return "未绑定";
+/**
+ * Pretty-print accelerator for UI (⌘⇧A etc. on mac).
+ * Pass localized unbound label from the caller (e.g. t("shortcut.unbound")).
+ */
+export function formatShortcut(
+  raw: string | null | undefined,
+  unboundLabel = "Not bound"
+): string {
+  if (!raw) return unboundLabel;
   const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
   return raw
     .split("+")
