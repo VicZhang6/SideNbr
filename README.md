@@ -5,60 +5,84 @@
 </p>
 
 <p align="center">
-  <strong>SideNbr</strong> is a lightweight Chrome Manifest V3 side panel extension that embeds the native web UIs of <strong>Perplexity</strong>, <strong>ChatGPT</strong>, <strong>DeepSeek</strong>, and <strong>Grok</strong> via iframe — while you browse any page.
+  <strong>SideNbr</strong> is an open-source Chrome <strong>Manifest V3</strong> side panel that embeds the official web UIs of
+  <strong>Perplexity</strong>, <strong>ChatGPT</strong>, <strong>DeepSeek</strong>, <strong>Grok</strong>, and your own sites —
+  while you browse any page.
 </p>
 
-<p align="center">Local shell only. <strong>No AI API keys. No chat proxy.</strong></p>
+<p align="center">
+  Local shell only · <strong>No AI API keys</strong> · <strong>No chat proxy</strong> · MIT
+</p>
 
 <p align="center">
-  <a href="#中文">中文说明</a> ·
+  <a href="#中文">中文</a> ·
   <a href="https://github.com/VicZhang6/SideNbr">GitHub</a> ·
-  <a href="https://github.com/VicZhang6/SideNbr/releases">Releases / Download</a> ·
-  License: MIT
+  <a href="https://github.com/VicZhang6/SideNbr/releases">Releases</a> ·
+  <a href="./docs/DOWNLOAD.md">Install guide</a>
 </p>
 
 ---
 
-## Download prebuilt packages
+## Why SideNbr?
 
-You do **not** need to compile from source for daily use.
+Keep researching or coding on the main page, and keep AI chats one shortcut away in Chrome’s side panel — without pasting API keys or routing traffic through a third-party backend.
+
+| You get | SideNbr does **not** |
+|---------|----------------------|
+| Official web UIs in an iframe | Proxy or store your chats |
+| 1–4 tabs (built-in + custom) | Require API keys |
+| Toolbar order you control | Read cross-origin chat DOM |
+| Settings as a full tab + live updates | Ship a Chrome Web Store binary |
+
+---
+
+## Download (no build required)
 
 1. Open **[Releases](https://github.com/VicZhang6/SideNbr/releases)**
-2. Download **`SideNbr-x.y.z.zip`** (single full open-source build)
-3. Unzip → Chrome → Developer mode → **Load unpacked** → select the unzipped folder
+2. Download **`SideNbr-x.y.z.zip`**
+3. Unzip → `chrome://extensions` → **Developer mode** → **Load unpacked**
 
-Full install steps: [docs/DOWNLOAD.md](./docs/DOWNLOAD.md).
+Details: [docs/DOWNLOAD.md](./docs/DOWNLOAD.md).
 
-Open-source only — **not** for Chrome Web Store.
+**Open-source only** — not submitted to the Chrome Web Store.
 
 ---
 
 ## Features
 
-- **Keyboard shortcut** — open / close the side panel in one keystroke (customizable in Chrome)
-- **Provider switch** — Perplexity / ChatGPT / DeepSeek / Grok with brand icons
-- **Enable 1–4 tabs** — built-in AIs and/or **custom** sites (name, URL, emoji/brand icon)
-- **Keep-alive on switch** — already opened providers stay mounted; no full reload on every switch
-- **Refresh** — reload the current iframe
-- **Open official site** — open the provider’s official site in a new tab
-- **Settings panel** — shortcut status, jump to `chrome://extensions/shortcuts`, provider toggles
-- **i18n EN / ZH** — UI language follows the browser language (can override)
-- **Light / dark theme** — follows system by default; force light or dark in settings
-- **Open-source full package** — single build with frame-compatibility rules for side-panel embedding
+### Side panel
+- **Wake shortcut** — open / close the panel (`Option+A` / `Alt+A` suggested; remappable in Chrome)
+- **Provider switch** — Perplexity · ChatGPT · DeepSeek · Grok with brand icons (mono icons adapt to dark mode)
+- **Keep-alive switch** — opened providers stay mounted so sessions warm across tab switches
+- **Refresh** / **Open official site** toolbar actions
+- **Update badge** — settings gear shows a red `1` when a newer GitHub Release exists
+
+### Custom & order
+- **1–4 enabled services** total (built-in and/or custom)
+- **Custom services** — name, `https` URL, emoji or brand icon; auto-enable when under the limit
+- **Drag-to-reorder** toolbar order (persisted)
+- **Live sync** — toggles / customs apply without reloading the extension
+
+### Settings (dedicated browser tab)
+Sidebar navigation:
+
+| Nav | Content |
+|-----|---------|
+| **Appearance & language** | Light / dark / system · EN / ZH / system |
+| **AI services** | Toolbar order · built-in toggles · custom services |
+| **Lab** | Keep sessions warm in a background host window |
+| **Shortcuts** | View binding · open Chrome shortcut settings |
+| **About** | Version · check GitHub Releases · repo link · extension details |
+
+Toasts for update results and enable-limit hints; purple active controls in dark mode.
+
+### Packaging
+- **Single full open-source zip** with Declarative Net Request frame-compatibility rules for side-panel iframes
+- GitHub Actions builds **`SideNbr-<version>.zip`** on each `v*` tag
 
 ---
 
-## Screenshots
-
-> Screenshot placeholders. Replace with real side-panel captures before release.
-
-| Side panel | Provider switch | Settings |
-|------------|-----------------|----------|
-| *TODO*     | *TODO*          | *TODO*   |
-
----
-
-## Quick start
+## Quick start (from source)
 
 Requires **Node 20+** and **Chrome 114+**.
 
@@ -66,124 +90,114 @@ Requires **Node 20+** and **Chrome 114+**.
 git clone https://github.com/VicZhang6/SideNbr.git
 cd SideNbr
 npm install
-npm run build          # Full → dist/
+npm run build          # → dist/
 ```
 
-Load the extension:
-
-1. Open `chrome://extensions`
-2. Enable **Developer mode**
-3. **Load unpacked** → select the project’s **`dist/`** folder
-4. Pin the toolbar icon; confirm the shortcut at `chrome://extensions/shortcuts`
+1. `chrome://extensions` → **Developer mode**
+2. **Load unpacked** → select **`dist/`**
+3. Pin the icon; check `chrome://extensions/shortcuts`
 
 ### Default shortcuts
 
-| Platform          | Suggested default       |
-|-------------------|-------------------------|
-| macOS             | `Option + A`            |
-| Windows / Linux   | `Alt + A`               |
+| Platform        | Suggested default |
+|-----------------|-------------------|
+| macOS           | `Option + A`      |
+| Windows / Linux | `Alt + A`         |
 
-The effective binding is whatever Chrome shows at `chrome://extensions/shortcuts` (it may be empty if another extension claimed the combo). You can also click the extension icon to open or close the panel.
+Effective binding is whatever Chrome shows (may be empty if another extension claimed the combo). The toolbar icon also toggles the panel.
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────┐
-│  Chrome Side Panel (local shell)    │
-│  React UI · provider switch · etc.  │
-│  ┌───────────────────────────────┐  │
-│  │  iframe → official HTTPS UI   │  │
-│  │  Perplexity / ChatGPT /       │  │
-│  │  DeepSeek / Grok              │  │
-│  └───────────────────────────────┘  │
-└─────────────────────────────────────┘
+┌──────────────────────────────────────────┐
+│  Chrome Side Panel (extension-local)     │
+│  React shell · switch · toolbar          │
+│  ┌────────────────────────────────────┐  │
+│  │  iframe → official HTTPS UI        │  │
+│  │  + optional custom sites           │  │
+│  └────────────────────────────────────┘  │
+│  optional: session-host window (Lab)     │
+└──────────────────────────────────────────┘
 ```
 
-- The side panel must be a **local page** inside the extension package (Chrome does not allow `side_panel.default_path` to point at a remote URL).
-- The local shell loads allowlisted official HTTPS URLs in an **iframe**.
-- Extension scripts **cannot and should not** read the cross-origin iframe DOM or chat content.
-- Accounts and subscriptions stay with each provider’s own site login; SideNbr does not proxy AI traffic.
+- `side_panel.default_path` must be a **local** extension page (Chrome rule).
+- The shell loads allowlisted / user-granted HTTPS URLs in iframes.
+- Scripts **cannot** read cross-origin iframe chat content — by design.
+- Logins and subscriptions stay with each provider.
 
-**Privacy-first:** no backend of our own, no chat logging, no third-party analytics SDK.
+**Privacy-first:** no first-party backend, no chat logging, no analytics SDK.
 
 ---
 
-## Build
+## Build & scripts
 
 ```bash
 npm install
-npm run build      # full package → dist/
-npm run check-build
-npm run pack        # optional: zip → artifacts/SideNbr-<version>.zip
+npm run build         # TypeScript + Vite → dist/
+npm run check-build   # verify package
+npm run pack          # zip → artifacts/SideNbr-<version>.zip
+npm run typecheck
 ```
 
+| Script | Purpose |
+|--------|---------|
+| `npm run build` | Production `dist/` |
+| `npm run check-build` | Validate `dist/` |
+| `npm run pack` | Build + zip |
+| `node scripts/generate-icons.mjs` | PNG icons from source |
 
-## Tech stack
+### Tech stack
 
 | Layer | Stack |
 |-------|--------|
 | UI | React 18, TypeScript, Vite |
-| Extension | Chrome Manifest V3, Side Panel API |
-| Icons | lucide-react; brand paths from LobeHub icons |
+| Extension | Chrome MV3, Side Panel, DNR, `chrome.storage` |
+| Icons | lucide-react; brand marks adapted from LobeHub icons |
 
----
-
-## Privacy summary
-
-- Does **not** read, store, or transmit ChatGPT / Perplexity / DeepSeek / Grok conversation content
-- AI traffic stays between your browser and each provider
-- Only lightweight prefs (e.g. active provider, enabled list) in `chrome.storage.local`
-- No first-party backend, no ad IDs, no third-party analytics SDK
-
-Full draft: [PRIVACY.md](./PRIVACY.md).
-
----
-
-## Scripts
-
-| Script | Description |
-|--------|-------------|
-| `npm run build` | TypeScript + Vite → `dist/` |
-| `npm run check-build` | Verify `dist/` package |
-| `npm run pack` | Build + check + zip → `artifacts/SideNbr-<version>.zip` |
-| `node scripts/generate-icons.mjs` | Generate PNG icons |
-
----
-
-## Project layout
+### Layout
 
 ```
 SideNbr/
-├─ public/                 # manifest, icons, DNR rules
-├─ scripts/                # build check, packaging, icons
-├─ src/                    # React side panel + background
+├─ public/              # manifest, icons, frame-bypass DNR rules
+├─ scripts/             # check-build, package-dist, generate-icons
+├─ src/                 # side panel, settings tab, session-host, background
 ├─ sidepanel.html
+├─ settings.html
 ├─ session-host.html
+├─ docs/DOWNLOAD.md
 ├─ PRIVACY.md
 ├─ CONTRIBUTING.md
-├─ LICENSE
 └─ README.md
 ```
 
 ---
 
+## Privacy summary
+
+- Does **not** read, store, or transmit conversation content from embedded AIs
+- AI traffic stays between your browser and each provider
+- Only lightweight prefs in `chrome.storage.local` (enabled list, order, theme, locale, customs, …)
+- No ad IDs, no third-party analytics SDK
+
+Full draft: [PRIVACY.md](./PRIVACY.md).
+
+---
+
 ## Disclaimer
 
-SideNbr is **not** an official product of OpenAI, Perplexity, DeepSeek, xAI, or any other provider, and is **not affiliated with or endorsed by** them. Third-party names and marks are used only to describe the embedded services. Use of those services is subject to their own terms and privacy policies.
+SideNbr is **not** an official product of OpenAI, Perplexity, DeepSeek, xAI, or any other provider, and is **not affiliated with or endorsed by** them. Names and marks are used only to describe embedded services. Use of those services is subject to their own terms and privacy policies.
 
 ---
 
 ## Contributing
 
-Issues and pull requests are welcome. Please read [CONTRIBUTING.md](./CONTRIBUTING.md) first.
+Issues and PRs welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
-Brief norms:
-
-- Contribute toward the **full** path by default; do not merge `private/` rules into the public manifest
+- One open-source package path (no store-safe / private split)
 - Stay privacy-first: no chat proxy, no conversation harvesting
-- Keep PRs small and clear; state motivation and how you tested
+- Small PRs with motivation + how you tested
 
 ---
 
@@ -201,148 +215,76 @@ Repository: [https://github.com/VicZhang6/SideNbr](https://github.com/VicZhang6/
   <img src="docs/assets/sidenbr-icon.png" alt="SideNbr 图标" width="96" height="96" />
 </p>
 
-**SideNbr** 是一款轻量 **Chrome Manifest V3** 侧边栏扩展：浏览任意网页时，用快捷键打开 Side Panel，通过 iframe 嵌入 **Perplexity**、**ChatGPT**、**DeepSeek**、**Grok** 的官方网页。
+**SideNbr** 是开源的 Chrome **Manifest V3** 侧边栏扩展：浏览任意网页时，用快捷键打开 Side Panel，通过 iframe 嵌入 **Perplexity**、**ChatGPT**、**DeepSeek**、**Grok** 官方页面，以及你自己的站点。
 
-仅本地外壳。**无需 AI API Key，不代理聊天流量。**
+仅本地外壳。**无需 API Key，不代理聊天流量。** MIT 许可。
 
-[GitHub](https://github.com/VicZhang6/SideNbr) · License: MIT
+[Releases 下载](https://github.com/VicZhang6/SideNbr/releases) · [安装说明](./docs/DOWNLOAD.md)
 
-### 功能
+### 为什么用 SideNbr？
 
-- **键盘快捷键** — 一键打开 / 关闭侧栏（可在 Chrome 中自定义）
-- **服务商切换** — Perplexity / ChatGPT / DeepSeek / Grok，带品牌图标
-- **启用 1–4 个标签** — 内置 AI 和/或**自定义**站点（名称、网址、emoji/品牌图标）
-- **切换保活** — 已打开的服务在切换时不销毁 iframe，避免反复加载
-- **刷新** — 重新加载当前 iframe
-- **打开官网** — 在新标签页打开对应官方站点
-- **设置面板** — 查看快捷键状态，一键跳转 `chrome://extensions/shortcuts`，管理服务启用
-- **中英文界面** — 跟随浏览器语言（EN / ZH）
-- **开源完整包** — 单一构建，含侧栏嵌入兼容规则
+主页面继续写代码 / 查资料，AI 对话一键在侧栏打开——不用填 Key、也不用把流量交给第三方后端。
 
-### 截图
+### 功能概览
 
-> 截图占位。发布前请替换为实际侧栏界面截图。
+**侧栏**
 
-| 侧栏 | 服务切换 | 设置 |
-|------|----------|------|
-| *TODO* | *TODO* | *TODO* |
+- 唤醒快捷键（默认建议 Option+A / Alt+A，可在 Chrome 中改）
+- 多服务切换 + 品牌图标（深色模式下 mono 图标自动反色）
+- 切换保活：已打开的 iframe 不销毁
+- 刷新 / 打开官网
+- 有新 GitHub Release 时，设置按钮显示角标
+
+**自定义与排序**
+
+- 最多同时启用 **1–4** 个服务（内置 + 自定义）
+- 自定义：名称、URL、emoji / 品牌图标
+- **拖拽**调整工具栏顺序
+- 设置更改后侧栏**热更新**，无需重载扩展
+
+**设置页（独立标签 + 左侧导航）**
+
+| 导航 | 内容 |
+|------|------|
+| 外观与语言 | 浅色 / 深色 / 跟随系统 · 中 / 英 / 跟随系统 |
+| AI 服务 | 工具栏排序 · 预设开关 · 自定义服务 |
+| 实验室 | 后台保持会话 |
+| 快捷键 | 查看绑定 · 打开 Chrome 快捷键设置 |
+| 关于 | 版本号 · 检查更新 · 开源仓库 · 扩展详情 |
+
+Toast 提示更新结果与「最多 4 个」等限制；深色模式激活色为品牌紫。
+
+**分发**
+
+- 单一开源完整包（含侧栏嵌入用的 DNR 规则）
+- 打 `v*` 标签后 Actions 自动上传 `SideNbr-<version>.zip`
+- **不上架** Chrome 网上应用店
 
 ### 快速开始
-
-需要 **Node 20+** 与 **Chrome 114+**。
 
 ```bash
 git clone https://github.com/VicZhang6/SideNbr.git
 cd SideNbr
 npm install
-npm run build          # Full → dist/
+npm run build    # → dist/
 ```
 
-加载扩展：
+`chrome://extensions` → 开发者模式 → 加载已解压的扩展程序 → 选择 **`dist/`**。
 
-1. 打开 `chrome://extensions`
-2. 开启「开发者模式」
-3. 「加载已解压的扩展程序」→ 选择项目下的 **`dist/`**
-4. 固定工具栏图标；在 `chrome://extensions/shortcuts` 确认快捷键
+### 架构（简述）
 
-#### 默认快捷键
+侧栏必须是扩展包内的本地页；iframe 加载官方 / 自定义 HTTPS 页面。扩展脚本**无法**读取跨域对话内容。账号登录使用你在各官网自己的会话。
 
-| 平台 | 建议默认 |
-|------|----------|
-| macOS | `Option + A` |
-| Windows / Linux | `Alt + A` |
+### 隐私
 
-实际绑定以 `chrome://extensions/shortcuts` 为准（可能因冲突未生效）。也可点击扩展图标打开/关闭侧栏。
-
-### 架构
-
-```
-┌─────────────────────────────────────┐
-│  Chrome Side Panel（本地外壳）       │
-│  React UI · 服务切换 · 设置等         │
-│  ┌───────────────────────────────┐  │
-│  │  iframe → 官方 HTTPS 页面      │  │
-│  │  Perplexity / ChatGPT /       │  │
-│  │  DeepSeek / Grok              │  │
-│  └───────────────────────────────┘  │
-└─────────────────────────────────────┘
-```
-
-- 侧栏必须是扩展包内的**本地页面**（Chrome 不允许 `side_panel.default_path` 指向远程 URL）。
-- 本地外壳用 **iframe** 加载白名单内的官方 HTTPS 地址。
-- 扩展脚本**无法也不应**读取跨域 iframe 的 DOM / 对话内容。
-- 账号与订阅使用你在各官网自己的登录状态；扩展不代理 AI 请求。
-
-**隐私优先：** 无自有后端、无聊天日志、无第三方分析 SDK。
-
-### 构建
-
-```bash
-npm install
-npm run build       # → dist/
-npm run check-build
-npm run pack        # → artifacts/SideNbr-<version>.zip
-```
-
-单一开源完整包（含侧栏嵌入兼容的 DNR 规则）。**仅开源分发，不上架 Chrome 网上应用店。**
-
-### 技术栈
-
-| 层级 | 技术 |
-|------|------|
-| UI | React 18, TypeScript, Vite |
-| 扩展 | Chrome Manifest V3, Side Panel API |
-| 图标 | lucide-react；品牌图标路径来自 LobeHub icons |
-
-### 隐私摘要
-
-- 不读取、不存储、不传输 ChatGPT / Perplexity / DeepSeek / Grok 对话内容
-- AI 流量仅在浏览器与对应服务商之间发生
-- 本地仅保存服务选择等轻量设置（`chrome.storage.local`）
-- 无自有后端、无广告标识、无第三方分析 SDK
-
-完整草案见 [PRIVACY.md](./PRIVACY.md)。
-
-### 脚本
-
-| 脚本 | 说明 |
-|------|------|
-| `npm run build` | TypeScript + Vite → `dist/` |
-| `npm run check-build` | 检查 `dist/` |
-| `npm run pack` | 构建并打包 zip |
-| `node scripts/generate-icons.mjs` | 生成 PNG 图标 |
-
-### 项目结构
-
-```
-SideNbr/
-├─ public/                 # manifest、图标、DNR 规则
-├─ scripts/                # 检查、打包、图标
-├─ src/                    # 侧栏 React + background
-├─ sidepanel.html
-├─ session-host.html
-├─ PRIVACY.md
-├─ CONTRIBUTING.md
-├─ LICENSE
-└─ README.md
-```
+不读取、不存储、不传输各 AI 对话内容；仅 `chrome.storage.local` 保存轻量偏好。详见 [PRIVACY.md](./PRIVACY.md)。
 
 ### 免责声明
 
-SideNbr **不是** OpenAI、Perplexity、DeepSeek、xAI 或其他服务商的官方产品，也**未获其附属或背书**。第三方名称与标识仅用于描述嵌入的目标服务。使用各服务时请遵守其服务条款与隐私政策。
+SideNbr **不是** OpenAI / Perplexity / DeepSeek / xAI 等官方产品，也未获其背书。第三方名称仅用于描述嵌入目标。
 
-### 贡献
+### 贡献与许可
 
-欢迎 Issue 与 Pull Request。请先阅读 [CONTRIBUTING.md](./CONTRIBUTING.md)。
+欢迎 Issue / PR，见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
 
-简要约定：
-
-- 默认向 **Full** 路径贡献；勿把 `private/` 规则合并进公开 Manifest
-- 保持隐私优先：不引入聊天代理、不采集对话内容
-- PR 尽量小而清晰；说明动机与测试方式
-
-### 许可证
-
-[MIT](./LICENSE) © 2026 VicZhang6
-
-仓库：[https://github.com/VicZhang6/SideNbr](https://github.com/VicZhang6/SideNbr)
+[MIT](./LICENSE) © 2026 VicZhang6 · [仓库](https://github.com/VicZhang6/SideNbr)
