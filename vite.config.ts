@@ -38,6 +38,7 @@ export default defineConfig({
       input: {
         sidepanel: resolve(__dirname, "sidepanel.html"),
         sessionHost: resolve(__dirname, "session-host.html"),
+        settings: resolve(__dirname, "settings.html"),
         background: resolve(__dirname, "src/background.ts"),
       },
       output: {

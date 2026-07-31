@@ -9,6 +9,7 @@
  *   onEnabledChange: (next: string[]) => void | Promise<void>;
  *   customProviders: ProviderConfig[];
  *   onCustomProvidersChange: (next: ProviderConfig[]) => void | Promise<void>;
+ *   variant?: "modal" | "page"; // default "modal"
  * }
  * ```
  *
@@ -71,6 +72,8 @@ export interface SettingsPanelProps {
   onEnabledChange: (next: string[]) => void | Promise<void>;
   customProviders: ProviderConfig[];
   onCustomProvidersChange: (next: ProviderConfig[]) => void | Promise<void>;
+  /** modal = side-panel overlay (default); page = full browser tab options UI */
+  variant?: "modal" | "page";
 }
 
 /** ProviderConfig plus optional picker icon token (may be persisted by App). */
@@ -157,7 +160,9 @@ export function SettingsPanel({
   onEnabledChange,
   customProviders,
   onCustomProvidersChange,
+  variant = "modal",
 }: SettingsPanelProps) {
+  const isPage = variant === "page";
   const { t, localeMode, setLocaleMode } = useI18n();
   const { themeMode, setThemeMode } = useTheme();
   const [actionShortcut, setActionShortcut] = useState<string | null>(null);
@@ -250,8 +255,9 @@ export function SettingsPanel({
     }
   }, [persistSessions]);
 
+  // Modal-only: lock body scroll, trap focus, restore previous focus.
   useEffect(() => {
-    if (!open) return;
+    if (!open || isPage) return;
 
     previousFocusRef.current =
       document.activeElement instanceof HTMLElement
@@ -278,7 +284,7 @@ export function SettingsPanel({
       }
       previousFocusRef.current = null;
     };
-  }, [open]);
+  }, [open, isPage]);
 
   useEffect(() => {
     if (!open) return;
@@ -294,7 +300,8 @@ export function SettingsPanel({
         return;
       }
 
-      if (e.key !== "Tab" || !panelRef.current) return;
+      // Focus trap only for modal overlay.
+      if (isPage || e.key !== "Tab" || !panelRef.current) return;
 
       const focusable = Array.from(
         panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
@@ -322,7 +329,7 @@ export function SettingsPanel({
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose, addingCustom, resetCustomForm]);
+  }, [open, onClose, addingCustom, resetCustomForm, isPage]);
 
   const handleConfigure = async () => {
     setBusy(true);
@@ -422,33 +429,37 @@ export function SettingsPanel({
 
   return (
     <div className="settings-layer" role="presentation">
-      <button
-        type="button"
-        className="settings-backdrop"
-        aria-label={t("settings.close")}
-        onClick={onClose}
-      />
+      {!isPage ? (
+        <button
+          type="button"
+          className="settings-backdrop"
+          aria-label={t("settings.close")}
+          onClick={onClose}
+        />
+      ) : null}
       <div
         ref={panelRef}
         className="settings-panel"
-        role="dialog"
-        aria-modal="true"
+        role={isPage ? "region" : "dialog"}
+        aria-modal={isPage ? undefined : true}
         aria-labelledby="settings-title"
       >
         <header className="settings-panel__header">
           <h2 id="settings-title" className="settings-panel__title">
             {t("settings.title", { name: PRODUCT_NAME })}
           </h2>
-          <button
-            ref={closeBtnRef}
-            type="button"
-            className="toolbar__btn"
-            onClick={onClose}
-            title={t("settings.close")}
-            aria-label={t("settings.close")}
-          >
-            <X size={16} strokeWidth={2} />
-          </button>
+          {!isPage ? (
+            <button
+              ref={closeBtnRef}
+              type="button"
+              className="toolbar__btn"
+              onClick={onClose}
+              title={t("settings.close")}
+              aria-label={t("settings.close")}
+            >
+              <X size={16} strokeWidth={2} />
+            </button>
+          ) : null}
         </header>
 
         <section className="settings-section">

@@ -99,6 +99,17 @@ export async function openExtensionDetails(): Promise<void> {
   }
 }
 
+export const SETTINGS_PAGE = "settings.html";
+
+/**
+ * Open the extension settings page in a new tab.
+ * Uses tabs.create (works from extension pages without "tabs" permission).
+ */
+export function openSettingsPage(): void {
+  const url = chrome.runtime.getURL(SETTINGS_PAGE);
+  void chrome.tabs.create({ url });
+}
+
 /**
  * Pretty-print accelerator for UI (⌘⇧A etc. on mac).
  * Pass localized unbound label from the caller (e.g. t("shortcut.unbound")).

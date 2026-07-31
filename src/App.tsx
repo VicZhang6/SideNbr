@@ -3,7 +3,6 @@ import { ExternalLink, RefreshCw, Settings } from "lucide-react";
 import {
   DEFAULT_ENABLED_PROVIDERS,
   DEFAULT_PROVIDER,
-  isBuiltinProviderId,
   resolveProvider,
   type ProviderConfig,
   type ProviderId,
@@ -15,18 +14,16 @@ import {
   loadOnboardingSeen,
   loadPersistSessions,
   saveActiveProvider,
-  saveCustomProviders,
-  saveEnabledProviders,
   saveOnboardingSeen,
 } from "./storage";
 import { MSG } from "./messages";
 import { useI18n } from "./i18n";
+import { openSettingsPage } from "./shortcuts";
 import { ProviderFrame } from "./components/ProviderFrame";
 import { ProviderSelector } from "./components/ProviderSelector";
 import { ErrorOverlay, type OverlayMode } from "./components/ErrorOverlay";
 import { LoadingHint } from "./components/LoadingHint";
 import { OnboardingTip } from "./components/OnboardingTip";
-import { SettingsPanel } from "./components/SettingsPanel";
 
 const SLOW_LOAD_MS = 12_000;
 
@@ -35,22 +32,6 @@ function notifyBackground(message: Record<string, unknown>): void {
     void chrome.runtime.sendMessage(message).catch(() => {});
   } catch {
     // Background may not be ready or may lack a listener yet.
-  }
-}
-
-/** Request optional host permission for a custom embed URL (ignore failures). */
-async function requestHostPermissionForUrl(url: string): Promise<void> {
-  try {
-    const origin = new URL(url).origin + "/*";
-    if (
-      typeof chrome.permissions === "undefined" ||
-      typeof chrome.permissions.request !== "function"
-    ) {
-      return;
-    }
-    await chrome.permissions.request({ origins: [origin] });
-  } catch {
-    // User denied or API unavailable — iframe may still work for some hosts.
   }
 }
 
@@ -73,14 +54,11 @@ export default function App() {
   );
   const [onboardingVisible, setOnboardingVisible] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const activeRef = useRef(active);
   activeRef.current = active;
   const customProvidersRef = useRef(customProviders);
   customProvidersRef.current = customProviders;
-  const enabledRef = useRef(enabled);
-  enabledRef.current = enabled;
 
   const getProvider = useCallback(
     (id: string) => resolveProvider(id, customProviders),
@@ -208,133 +186,6 @@ export default function App() {
     void saveActiveProvider(id);
   }, []);
 
-  /**
-   * Settings: enable/disable providers.
-   * Disabling unmounts that iframe (free memory). Enabling does not auto-mount until selected.
-   * On newly enabled custom URLs, request optional host permission.
-   */
-  const handleEnabledChange = useCallback(
-    async (nextEnabled: ProviderId[]) => {
-      const customs = customProvidersRef.current;
-      const prevEnabled = enabledRef.current;
-
-      // Request host access for newly enabled custom providers.
-      for (const id of nextEnabled) {
-        if (prevEnabled.includes(id)) continue;
-        if (isBuiltinProviderId(id)) continue;
-        const cfg = resolveProvider(id, customs);
-        if (cfg?.embedUrl) {
-          await requestHostPermissionForUrl(cfg.embedUrl);
-        }
-      }
-
-      const saved = await saveEnabledProviders(nextEnabled, customs);
-      setEnabled(saved);
-
-      // Drop mounts for disabled providers (destroy only when user turns them off).
-      setMounted((prev) => {
-        const next = new Set<ProviderId>();
-        for (const id of prev) {
-          if (saved.includes(id)) next.add(id);
-        }
-        return next;
-      });
-      setLoaded((prev) => {
-        const next = new Set<ProviderId>();
-        for (const id of prev) {
-          if (saved.includes(id)) next.add(id);
-        }
-        return next;
-      });
-
-      // If active was disabled, switch to first remaining without destroying others.
-      if (!saved.includes(activeRef.current)) {
-        const fallback = saved[0];
-        if (fallback) {
-          setActive(fallback);
-          setMounted((prev) => {
-            if (prev.has(fallback)) return prev;
-            const next = new Set(prev);
-            next.add(fallback);
-            return next;
-          });
-          setLoaded((prevLoaded) => {
-            if (prevLoaded.has(fallback)) {
-              setLoading(false);
-            } else {
-              setLoading(true);
-              setShowSlowLoadHelp(false);
-              setSlowDismissed(false);
-            }
-            return prevLoaded;
-          });
-          void saveActiveProvider(fallback);
-        }
-      }
-    },
-    []
-  );
-
-  /**
-   * Settings: create / edit / remove custom providers.
-   * Requests host permission for new/changed embed URLs.
-   * Prunes enabled list when a custom is removed.
-   */
-  const handleCustomProvidersChange = useCallback(
-    async (nextCustoms: ProviderConfig[]) => {
-      const prev = customProvidersRef.current;
-      const prevById = new Map(prev.map((p) => [p.id, p]));
-
-      for (const p of nextCustoms) {
-        const old = prevById.get(p.id);
-        if (!old || old.embedUrl !== p.embedUrl) {
-          await requestHostPermissionForUrl(p.embedUrl);
-        }
-      }
-
-      const savedCustoms = await saveCustomProviders(nextCustoms);
-      setCustomProviders(savedCustoms);
-
-      // Drop enabled entries for removed customs; re-normalize against new list.
-      const customIds = new Set(savedCustoms.map((p) => p.id));
-      const nextEnabled = enabledRef.current.filter(
-        (id) => isBuiltinProviderId(id) || customIds.has(id)
-      );
-      const savedEnabled = await saveEnabledProviders(nextEnabled, savedCustoms);
-      setEnabled(savedEnabled);
-
-      setMounted((prevMounted) => {
-        const next = new Set<ProviderId>();
-        for (const id of prevMounted) {
-          if (savedEnabled.includes(id)) next.add(id);
-        }
-        return next;
-      });
-      setLoaded((prevLoaded) => {
-        const next = new Set<ProviderId>();
-        for (const id of prevLoaded) {
-          if (savedEnabled.includes(id)) next.add(id);
-        }
-        return next;
-      });
-
-      if (!savedEnabled.includes(activeRef.current)) {
-        const fallback = savedEnabled[0];
-        if (fallback) {
-          setActive(fallback);
-          setMounted((m) => {
-            if (m.has(fallback)) return m;
-            const n = new Set(m);
-            n.add(fallback);
-            return n;
-          });
-          void saveActiveProvider(fallback);
-        }
-      }
-    },
-    []
-  );
-
   const reloadCurrent = useCallback(() => {
     const id = activeRef.current;
     setReloadToken((prev) => ({
@@ -430,12 +281,10 @@ export default function App() {
           </button>
           <button
             type="button"
-            className={`toolbar__btn${settingsOpen ? " is-active" : ""}`}
-            onClick={() => setSettingsOpen((v) => !v)}
+            className="toolbar__btn"
+            onClick={openSettingsPage}
             title={t("toolbar.settings")}
             aria-label={t("toolbar.settingsOpen")}
-            aria-haspopup="dialog"
-            aria-expanded={settingsOpen}
           >
             <Settings size={15} strokeWidth={2} />
           </button>
@@ -467,15 +316,6 @@ export default function App() {
           onDismiss={overlayMode === "slow" ? dismissSlowHelp : undefined}
         />
       </main>
-
-      <SettingsPanel
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        enabledProviders={enabled}
-        onEnabledChange={handleEnabledChange}
-        customProviders={customProviders}
-        onCustomProvidersChange={handleCustomProvidersChange}
-      />
 
       <OnboardingTip visible={onboardingVisible} onDismiss={dismissOnboarding} />
     </div>

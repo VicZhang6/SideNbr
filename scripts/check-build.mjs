@@ -20,6 +20,7 @@ const required = [
   "background.js",
   "sidepanel.html",
   "session-host.html",
+  "settings.html",
   "frame-bypass-rules.json",
   "icons/icon-16.png",
   "icons/icon-32.png",

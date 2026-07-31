@@ -559,6 +559,83 @@ body {
   border-color: transparent;
 }
 
+/* ---- Settings page (options tab) ---- */
+.settings-page-body {
+  overflow: auto;
+  min-height: 100%;
+  background: var(--bg);
+}
+
+.settings-page-body,
+.settings-page-body #root {
+  height: auto;
+  min-height: 100%;
+  overflow: auto;
+}
+
+.settings-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+  min-height: 100%;
+  background: var(--bg);
+}
+
+.settings-page__loading {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* When settings is a tab: no backdrop, no fixed layer */
+.settings-page .settings-layer {
+  position: static;
+  inset: auto;
+  display: block;
+  padding: 0;
+  pointer-events: auto;
+  z-index: auto;
+}
+
+.settings-page .settings-backdrop {
+  display: none;
+}
+
+.settings-page .settings-panel {
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  animation: none;
+  overflow: visible;
+  background: transparent;
+}
+
+.settings-page .settings-panel__header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 0 4px;
+  padding: 0 4px 12px 4px;
+  height: auto;
+  min-height: 40px;
+  border-bottom: 1px solid var(--border-muted);
+  background: var(--bg);
+}
+
+.settings-page .settings-panel__title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.settings-page .settings-section {
+  padding: 16px 4px 8px;
+}
+
 /* ---- Settings modal ---- */
 @keyframes settings-panel-in {
   from {

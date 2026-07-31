@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SideNbr",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "minimum_chrome_version": "114",
   "description": "Chrome side panel for Perplexity, ChatGPT, DeepSeek, Grok, and custom sites.",
   "permissions": [
@@ -47,6 +47,10 @@
   },
   "side_panel": {
     "default_path": "sidepanel.html"
+  },
+  "options_ui": {
+    "page": "settings.html",
+    "open_in_tab": true
   },
   "action": {
     "default_title": "Open or close SideNbr"
