@@ -1,0 +1,113 @@
+# Release: build store-safe + private zips; upload artifacts;
+# on tag push v* also create a GitHub Release with both packages attached.
+#
+# Triggers:
+#   - push tag matching v* (e.g. v0.1.4)
+#   - workflow_dispatch (manual; always uploads artifacts, release only if ref is a v* tag)
+#
+# Zip names:
+#   SideNbr-store-safe-<version>.zip  — contents of dist/ after npm run build
+#   SideNbr-private-<version>.zip     — contents of dist/ after npm run build:private
+#
+# Version is taken from package.json (see scripts/package-dist.mjs).
+#
+# See docs/DOWNLOAD.md for end-user download / install steps.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Build & package zips
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Read version
+        id: meta
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Package version: ${VERSION}"
+
+      - name: Build store-safe
+        run: npm run build
+
+      - name: Verify store-safe build
+        run: npm run check-build
+
+      - name: Pack store-safe zip
+        run: node scripts/package-dist.mjs
+
+      - name: Build private
+        run: npm run build:private
+
+      - name: Verify private build
+        run: node scripts/check-build.mjs --private
+
+      - name: Pack private zip
+        run: node scripts/package-dist.mjs --private
+
+      - name: List artifacts
+        run: |
+          ls -la artifacts/
+          echo "---"
+          sha256sum artifacts/*.zip || shasum -a 256 artifacts/*.zip
+
+      - name: Upload GitHub Actions artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: SideNbr-${{ steps.meta.outputs.version }}
+          path: artifacts/SideNbr-*.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create GitHub Release (tag pushes only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: SideNbr ${{ github.ref_name }}
+          generate_release_notes: true
+          body: |
+            ## SideNbr ${{ github.ref_name }}
+
+            Pre-built Chrome extension packages (Manifest V3). Unzip and **Load unpacked** from `chrome://extensions` (Developer mode), or pack as needed.
+
+            | Package | Description |
+            |---------|-------------|
+            | `SideNbr-store-safe-${{ steps.meta.outputs.version }}.zip` | Default / store-safe build (no DNR frame bypass) |
+            | `SideNbr-private-${{ steps.meta.outputs.version }}.zip` | Private / compatibility build with DNR header bypass — **not** for Chrome Web Store |
+
+            Version in `package.json`: **${{ steps.meta.outputs.version }}**
+
+            See [docs/DOWNLOAD.md](https://github.com/VicZhang6/SideNbr/blob/main/docs/DOWNLOAD.md) for install steps (EN / 中文).
+          files: |
+            artifacts/SideNbr-store-safe-${{ steps.meta.outputs.version }}.zip
+            artifacts/SideNbr-private-${{ steps.meta.outputs.version }}.zip
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
