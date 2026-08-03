@@ -15,14 +15,14 @@ export function LoginHint({
   onDismiss,
 }: LoginHintProps) {
   const { t } = useI18n();
+  const withLabel = (key: "login.hintTitle" | "login.hintBody") =>
+    t(key).replace(/\{label\}/g, providerLabel);
 
   return (
     <div className="login-hint" role="status" aria-live="polite">
       <div className="login-hint__card">
-        <p className="login-hint__title">{t("login.hintTitle")}</p>
-        <p className="login-hint__body">
-          {t("login.hintBody").replace(/\{label\}/g, providerLabel)}
-        </p>
+        <p className="login-hint__title">{withLabel("login.hintTitle")}</p>
+        <p className="login-hint__body">{withLabel("login.hintBody")}</p>
         <div className="login-hint__actions">
           <button
             type="button"
