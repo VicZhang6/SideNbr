@@ -6,3 +6,6 @@ export const MSG = {
   SYNC_PROVIDERS: "sidenbr/sync-providers", // { enabled: ProviderId[], active: ProviderId }
   GET_PERSIST: "sidenbr/get-persist",
 } as const;
+
+/** Port name: side panel document ↔ service worker (open-state tracking). */
+export const SIDE_PANEL_PORT = "sidenbr-sidepanel";

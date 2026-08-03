@@ -12,6 +12,11 @@ import {
   syncPersistMode,
   teardownSessionHost,
 } from "./session-host-manager";
+import {
+  installSidePanelToggleBehavior,
+  registerSidePanelActionToggle,
+  registerSidePanelPortTracking,
+} from "./side-panel-toggle";
 
 const FRAME_HEADER_RULES: chrome.declarativeNetRequest.Rule[] = [
   {
@@ -312,8 +317,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 });
 
-// openPanelOnActionClick stays true so the side panel (settings + UI) always
-// opens. The session host is a minimized warm-up window only; no action steal.
+// Side panel open/close is owned by side-panel-toggle (action + Alt+A).
+// Session host is a minimized warm-up window only; it must not steal the action.
+
+registerSidePanelPortTracking();
+registerSidePanelActionToggle();
 
 /**
  * Keep host in sync when user toggles persist or enabled providers
@@ -339,18 +347,16 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 });
 
 async function bootstrap(): Promise<void> {
-  // Panel behavior follows persistSessions (true → host toggle; false → side panel).
+  // Always use our toggle (open/close); never openPanelOnActionClick-only.
+  try {
+    await installSidePanelToggleBehavior();
+  } catch {
+    // ignore
+  }
   try {
     await bootstrapSessionHost();
   } catch {
-    // Fallback: classic side-panel-on-action if host bootstrap fails.
-    try {
-      await chrome.sidePanel.setPanelBehavior({
-        openPanelOnActionClick: true,
-      });
-    } catch {
-      // ignore
-    }
+    // Host optional; panel toggle still works via action listener.
   }
   await installFrameBypassRules();
   await clearProviderServiceWorkers();

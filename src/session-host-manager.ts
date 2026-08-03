@@ -230,14 +230,18 @@ export async function toggleSessionHost(): Promise<void> {
 
 /**
  * Apply host lifecycle for persist mode.
- * Side panel always opens on action click (settings live there).
+ * Side panel open/close is handled by side-panel-toggle (action + shortcut).
  * Host window stays minimized in the background for warm iframes only.
  */
 export async function syncPersistMode(enabled: boolean): Promise<void> {
-  // Always open Chrome Side Panel on toolbar/shortcut — do not steal the action.
-  await chrome.sidePanel.setPanelBehavior({
-    openPanelOnActionClick: true,
-  });
+  // Keep action free for toggleSidePanel — never openPanelOnActionClick.
+  try {
+    await chrome.sidePanel.setPanelBehavior({
+      openPanelOnActionClick: false,
+    });
+  } catch {
+    // ignore
+  }
 
   if (enabled) {
     await ensureSessionHost();
