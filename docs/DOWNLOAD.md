@@ -18,6 +18,19 @@ There is a **single full build** (open-source). No store-safe / private split.
 4. **Load unpacked** → select the unzipped folder
 5. Pin the icon; optional shortcut at `chrome://extensions/shortcuts` (default: **Option+A** / **Alt+A**)
 
+### Update
+
+Unpacked extensions are identified by **folder path**. Loading a new zip from another folder adds a **second** SideNbr (different ID) instead of replacing the old one.
+
+**Recommended**
+
+1. Download and unzip the new `SideNbr-<version>.zip`
+2. At `chrome://extensions`, **Remove** the old SideNbr
+3. **Load unpacked** → select the new folder  
+   Or overwrite the **same** install folder with the new files, then click **Reload** on that card
+
+Keep only one SideNbr enabled to avoid shortcut / side panel conflicts.
+
 ### Notes
 
 - Chrome **114+**
@@ -43,6 +56,19 @@ There is a **single full build** (open-source). No store-safe / private split.
 2. `chrome://extensions` → **开发者模式**
 3. **加载已解压的扩展程序** → 选解压目录
 4. 固定图标；快捷键默认 **Option+A**（Mac）/ **Alt+A**（Windows）
+
+### 更新
+
+「已解压」扩展按**目录路径**区分。若把新版 zip 解压到**另一个文件夹**再「加载已解压」，Chrome 会当成**第二个**扩展（ID 不同），不会覆盖旧版。
+
+**推荐做法**
+
+1. 下载并解压新的 `SideNbr-<version>.zip`
+2. 在 `chrome://extensions` 中 **移除** 旧的 SideNbr
+3. **加载已解压的扩展程序** → 选择新目录  
+   或把新文件**覆盖到原来的安装目录**，再在该扩展卡片上点 **重新加载**
+
+请只保留一个已启用的 SideNbr，避免快捷键或侧栏冲突。
 
 ### 说明
 

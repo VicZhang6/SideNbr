@@ -42,7 +42,7 @@ Keep researching or coding on the main page, and keep AI chats one shortcut away
 2. Download **`SideNbr-x.y.z.zip`**
 3. Unzip → `chrome://extensions` → **Developer mode** → **Load unpacked**
 
-Details: [docs/DOWNLOAD.md](./docs/DOWNLOAD.md).
+**Update:** remove the old SideNbr first, or overwrite the **same** folder and click **Reload**. Loading a new folder creates a second extension (does not replace). See [docs/DOWNLOAD.md](./docs/DOWNLOAD.md).
 
 **Open-source only** — not submitted to the Chrome Web Store.
 
@@ -226,6 +226,8 @@ Repository: [https://github.com/VicZhang6/SideNbr](https://github.com/VicZhang6/
 仅本地外壳。**无需 API Key，不代理聊天流量。** MIT 许可。
 
 [Releases 下载](https://github.com/VicZhang6/SideNbr/releases) · [安装说明](./docs/DOWNLOAD.md)
+
+**更新：** 先移除旧版 SideNbr，或覆盖**同一目录**后点重新加载。解压到新文件夹再「加载已解压」会并存两个扩展，详见 [docs/DOWNLOAD.md](./docs/DOWNLOAD.md)。
 
 ### 为什么用 SideNbr？
 
