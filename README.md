@@ -201,6 +201,12 @@ Issues and PRs welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ---
 
+## Friendly Links
+
+- [LINUX DO](https://linux.do/) — A new ideal community
+
+---
+
 ## License
 
 [MIT](./LICENSE) © 2026 VicZhang6
@@ -282,6 +288,10 @@ npm run build    # → dist/
 ### 免责声明
 
 SideNbr **不是** OpenAI / Perplexity / DeepSeek / xAI 等官方产品，也未获其背书。第三方名称仅用于描述嵌入目标。
+
+### 友情链接
+
+- [LINUX DO](https://linux.do/) — A new ideal community
 
 ### 贡献与许可
 
