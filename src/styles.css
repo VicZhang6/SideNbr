@@ -1979,6 +1979,25 @@ html[data-theme="dark"] .settings-page .settings-icon-btn:hover {
   flex-shrink: 0;
 }
 
+.settings-config-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.settings-config-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .settings-version {
   flex: 0 0 auto;
   padding: 2px 8px;

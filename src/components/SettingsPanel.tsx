@@ -29,6 +29,7 @@ import {
 import {
   ArrowUpCircle,
   Beaker,
+  Download,
   ExternalLink,
   Github,
   GripVertical,
@@ -44,6 +45,7 @@ import {
   RefreshCw,
   Sun,
   Trash2,
+  Upload,
   X,
 } from "lucide-react";
 import { PRODUCT_NAME, REPO_LABEL, REPO_URL } from "../constants";
@@ -79,6 +81,10 @@ import {
   checkLatestReleaseCached,
   getInstalledVersion,
 } from "../updateCheck";
+import {
+  downloadConfigExport,
+  importConfigFromFile,
+} from "../config-backup";
 import { DEFAULT_CUSTOM_ICON, IconPicker } from "./IconPicker";
 import { ToastViewport, useToast } from "./Toast";
 
@@ -216,6 +222,7 @@ export function SettingsPanel({
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   const unboundLabel = t("shortcut.unbound");
   const enabledSet = new Set(enabledProviders);
@@ -429,6 +436,45 @@ export function SettingsPanel({
       setCheckingUpdate(false);
     }
   }, [showToast, t]);
+
+  const handleExportConfig = useCallback(async () => {
+    try {
+      await downloadConfigExport();
+      showToast({
+        message: t("settings.configExportOk"),
+        variant: "success",
+      });
+    } catch {
+      showToast({
+        message: t("settings.configImportFailed"),
+        variant: "error",
+      });
+    }
+  }, [showToast, t]);
+
+  const handleImportConfigFile = useCallback(
+    async (file: File | undefined) => {
+      if (!file) {
+        return;
+      }
+      const result = await importConfigFromFile(file);
+      if (result.ok) {
+        showToast({
+          message: t("settings.configImportOk"),
+          variant: "success",
+        });
+        return;
+      }
+      const msg =
+        result.reason === "unsupported"
+          ? t("settings.configImportUnsupported")
+          : result.reason === "invalid" || result.reason === "empty"
+            ? t("settings.configImportInvalid")
+            : t("settings.configImportFailed");
+      showToast({ message: msg, variant: "error" });
+    },
+    [showToast, t]
+  );
 
   const toggleProvider = (id: string) => {
     const isOn = enabledSet.has(id);
@@ -1271,6 +1317,47 @@ export function SettingsPanel({
                 ? t("settings.checkingUpdate")
                 : t("settings.checkUpdate")}
             </button>
+          </div>
+        </section>
+
+        <section className="settings-section">
+          <div className="settings-section__label">
+            <Download size={14} strokeWidth={2} aria-hidden />
+            <span>{t("settings.configTitle")}</span>
+          </div>
+          <p className="settings-footnote settings-footnote--tight">
+            {t("settings.configHelp")}
+          </p>
+          <div className="settings-config-actions">
+            <button
+              type="button"
+              className="settings-btn"
+              onClick={() => void handleExportConfig()}
+            >
+              <Download size={14} strokeWidth={2} aria-hidden />
+              {t("settings.configExport")}
+            </button>
+            <button
+              type="button"
+              className="settings-btn"
+              onClick={() => importFileRef.current?.click()}
+            >
+              <Upload size={14} strokeWidth={2} aria-hidden />
+              {t("settings.configImport")}
+            </button>
+            <input
+              ref={importFileRef}
+              type="file"
+              accept="application/json,.json"
+              className="settings-config-file-input"
+              tabIndex={-1}
+              aria-hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                void handleImportConfigFile(file);
+              }}
+            />
           </div>
         </section>
 

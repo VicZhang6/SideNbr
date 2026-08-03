@@ -108,6 +108,15 @@ export interface Messages {
   "settings.openRelease": string;
   "settings.downloadUpdate": string;
   "settings.updateCheckFailed": string;
+  "settings.configTitle": string;
+  "settings.configHelp": string;
+  "settings.configExport": string;
+  "settings.configImport": string;
+  "settings.configExportOk": string;
+  "settings.configImportOk": string;
+  "settings.configImportInvalid": string;
+  "settings.configImportUnsupported": string;
+  "settings.configImportFailed": string;
   "shortcut.unbound": string;
   "common.close": string;
 }
