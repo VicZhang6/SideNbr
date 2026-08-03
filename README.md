@@ -154,7 +154,8 @@ npm run typecheck
 |-------|--------|
 | UI | React 18, TypeScript, Vite |
 | Extension | Chrome MV3, Side Panel, DNR, `chrome.storage` |
-| Icons | lucide-react; brand marks adapted from [Lobe Icons](https://github.com/lobehub/lobe-icons) |
+| Icons | [lucide-react](https://github.com/lucide-icons/lucide); brand marks from [Lobe Icons](https://github.com/lobehub/lobe-icons) |
+| Motion | [PowerGlitch](https://github.com/7PH/powerglitch) (loading hint) |
 
 ### Layout
 
@@ -203,8 +204,16 @@ Issues and PRs welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Credits
 
-- Brand icons (Perplexity, OpenAI, DeepSeek, Grok, and others in the picker) are adapted from **[Lobe Icons](https://github.com/lobehub/lobe-icons)** ([@lobehub/icons](https://www.npmjs.com/package/@lobehub/icons)). Licensed under MIT by LobeHub. Vendored as local SVG components; the full package is not bundled.
-- UI icons: [lucide-react](https://lucide.dev/)
+Open-source used in this project (runtime):
+
+| Project | Role | License |
+|---------|------|---------|
+| [React](https://github.com/facebook/react) | UI | MIT |
+| [Lobe Icons](https://github.com/lobehub/lobe-icons) | Brand marks (vendored SVG; not the full npm package) | MIT |
+| [Lucide](https://github.com/lucide-icons/lucide) (`lucide-react`) | Toolbar / settings icons | ISC |
+| [PowerGlitch](https://github.com/7PH/powerglitch) | Loading text effect | MIT |
+
+Build tools (not shipped in the zip): Vite, TypeScript, and related tooling.
 
 ## Friendly Links
 
@@ -298,8 +307,16 @@ SideNbr **不是** OpenAI / Perplexity / DeepSeek / xAI 等官方产品，也未
 
 ### 致谢
 
-- 品牌图标（Perplexity、OpenAI、DeepSeek、Grok 及选择器中其它标识）改编自 **[Lobe Icons](https://github.com/lobehub/lobe-icons)**（[@lobehub/icons](https://www.npmjs.com/package/@lobehub/icons)），LobeHub 以 MIT 许可发布。以本地 SVG 组件内嵌，未整包引入依赖。
-- 界面图标：[lucide-react](https://lucide.dev/)
+运行时用到的开源项目：
+
+| 项目 | 用途 | 许可 |
+|------|------|------|
+| [React](https://github.com/facebook/react) | 界面 | MIT |
+| [Lobe Icons](https://github.com/lobehub/lobe-icons) | 品牌图标（本地 SVG 内嵌，未整包引入） | MIT |
+| [Lucide](https://github.com/lucide-icons/lucide)（`lucide-react`） | 工具栏 / 设置图标 | ISC |
+| [PowerGlitch](https://github.com/7PH/powerglitch) | 加载文案动效 | MIT |
+
+构建工具（不随安装包分发）：Vite、TypeScript 等。
 
 ### 友情链接
 
