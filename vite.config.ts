@@ -40,12 +40,19 @@ export default defineConfig({
         sessionHost: resolve(__dirname, "session-host.html"),
         settings: resolve(__dirname, "settings.html"),
         background: resolve(__dirname, "src/background.ts"),
+        contentLoginBridge: resolve(
+          __dirname,
+          "src/content-login-bridge.ts"
+        ),
       },
       output: {
-        entryFileNames: (chunk) =>
-          chunk.name === "background"
-            ? "background.js"
-            : "assets/[name]-[hash].js",
+        entryFileNames: (chunk) => {
+          if (chunk.name === "background") return "background.js";
+          if (chunk.name === "contentLoginBridge") {
+            return "content-login-bridge.js";
+          }
+          return "assets/[name]-[hash].js";
+        },
         chunkFileNames: "assets/[name]-[hash].js",
         assetFileNames: "assets/[name]-[hash][extname]",
       },

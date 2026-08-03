@@ -21,6 +21,11 @@ export const zh: Messages = {
   "error.reload": "刷新侧栏",
   "error.openOfficial": "在官网打开",
   "error.dismiss": "关闭提示",
+  "login.hintTitle": "建议在独立窗口完成登录",
+  "login.hintBody":
+    "{label} 的登录（微信扫码 / 第三方授权）在侧栏 iframe 内经常无法跳转。请在独立窗口登录，完成后会自动刷新侧栏。",
+  "login.openWindow": "打开登录窗口",
+  "login.dismiss": "暂不",
   "onboarding.hint":
     "可在设置中，或通过 chrome://extensions/shortcuts 修改唤醒快捷键（macOS：Option+A，Windows/Linux：Alt+A）。",
   "onboarding.openShortcuts": "打开快捷键设置",

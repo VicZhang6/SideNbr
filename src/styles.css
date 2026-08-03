@@ -466,6 +466,57 @@ html[data-theme="dark"] .toolbar__badge {
   z-index: 1;
 }
 
+/* Login hint — top-level window CTA when iframe is stuck on auth */
+.login-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 8;
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  pointer-events: none;
+}
+
+.login-hint__card {
+  pointer-events: auto;
+  width: min(100%, 360px);
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  background: var(--surface, #ffffff);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+  color: var(--text, #1a1a1a);
+}
+
+[data-theme="dark"] .login-hint__card {
+  background: var(--surface, #1c1f28);
+  border-color: var(--border, rgba(255, 255, 255, 0.1));
+  color: var(--text, #f2f2f2);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+.login-hint__title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.login-hint__body {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 0.88;
+}
+
+.login-hint__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* Centered loading — text only, glitch via PowerGlitch (no chrome/spinner) */
 .loading-hint {
   position: absolute;

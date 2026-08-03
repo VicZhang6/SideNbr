@@ -29,6 +29,7 @@ import { ProviderFrame } from "./components/ProviderFrame";
 import { ProviderSelector } from "./components/ProviderSelector";
 import { ErrorOverlay, type OverlayMode } from "./components/ErrorOverlay";
 import { LoadingHint } from "./components/LoadingHint";
+import { LoginHint } from "./components/LoginHint";
 import { OnboardingTip } from "./components/OnboardingTip";
 
 const SLOW_LOAD_MS = 12_000;
@@ -62,6 +63,10 @@ export default function App() {
   const [bootstrapped, setBootstrapped] = useState(false);
   /** True when GitHub has a newer release — iOS-style badge on settings. */
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  /** Content script detected login UI in the active provider iframe. */
+  const [loginHintVisible, setLoginHintVisible] = useState(false);
+  /** Providers for which the user dismissed the login banner this session. */
+  const loginHintDismissedRef = useRef<Set<ProviderId>>(new Set());
 
   const activeRef = useRef(active);
   activeRef.current = active;
@@ -298,8 +303,7 @@ export default function App() {
     void saveActiveProvider(id);
   }, []);
 
-  const reloadCurrent = useCallback(() => {
-    const id = activeRef.current;
+  const reloadProvider = useCallback((id: ProviderId) => {
     setReloadToken((prev) => ({
       ...prev,
       [id]: (prev[id] ?? 0) + 1,
@@ -310,10 +314,17 @@ export default function App() {
       next.delete(id);
       return next;
     });
-    setLoading(true);
-    setShowSlowLoadHelp(false);
-    setSlowDismissed(false);
+    if (activeRef.current === id) {
+      setLoading(true);
+      setShowSlowLoadHelp(false);
+      setSlowDismissed(false);
+      setLoginHintVisible(false);
+    }
   }, []);
+
+  const reloadCurrent = useCallback(() => {
+    reloadProvider(activeRef.current);
+  }, [reloadProvider]);
 
   const openOfficialSite = useCallback(() => {
     const cfg = resolveProvider(activeRef.current, customProvidersRef.current);
@@ -322,6 +333,83 @@ export default function App() {
       void chrome.tabs.create({ url });
     }
   }, []);
+
+  const openLoginWindow = useCallback(() => {
+    const id = activeRef.current;
+    const cfg = resolveProvider(id, customProvidersRef.current);
+    const url = cfg?.externalUrl;
+    if (!url) {
+      return;
+    }
+    notifyBackground({
+      type: MSG.OPEN_LOGIN_WINDOW,
+      providerId: id,
+      url,
+    });
+  }, []);
+
+  const dismissLoginHint = useCallback(() => {
+    const id = activeRef.current;
+    loginHintDismissedRef.current.add(id);
+    setLoginHintVisible(false);
+  }, []);
+
+  // Login hint + success from background / content-login-bridge.
+  useEffect(() => {
+    const onMessage = (
+      message: unknown,
+      _sender: chrome.runtime.MessageSender,
+      _sendResponse: (r?: unknown) => void
+    ): void => {
+      if (!message || typeof message !== "object" || !("type" in message)) {
+        return;
+      }
+      const msg = message as {
+        type: string;
+        providerId?: unknown;
+        show?: unknown;
+      };
+      const providerId =
+        typeof msg.providerId === "string" ? msg.providerId : null;
+      if (!providerId) {
+        return;
+      }
+
+      if (msg.type === MSG.LOGIN_HINT) {
+        if (providerId !== activeRef.current) {
+          return;
+        }
+        const show = msg.show === true;
+        if (show && loginHintDismissedRef.current.has(providerId)) {
+          return;
+        }
+        if (!show) {
+          loginHintDismissedRef.current.delete(providerId);
+        }
+        setLoginHintVisible(show);
+        return;
+      }
+
+      if (msg.type === MSG.LOGIN_SUCCESS) {
+        loginHintDismissedRef.current.delete(providerId);
+        if (providerId === activeRef.current) {
+          setLoginHintVisible(false);
+        }
+        // Remount iframe so it picks up cookies / session from top-level login.
+        reloadProvider(providerId);
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(onMessage);
+    return () => {
+      chrome.runtime.onMessage.removeListener(onMessage);
+    };
+  }, [reloadProvider]);
+
+  // Reset dismissed flag when switching providers so hints can show again.
+  useEffect(() => {
+    setLoginHintVisible(false);
+  }, [active]);
 
   const handleFrameLoad = useCallback((id: ProviderId) => {
     setLoaded((prev) => {
@@ -432,6 +520,18 @@ export default function App() {
         })}
 
         {showLoadingHint ? <LoadingHint /> : null}
+
+        {loginHintVisible ? (
+          <LoginHint
+            providerLabel={providerLabel}
+            onOpenWindow={openLoginWindow}
+            onDismiss={dismissLoginHint}
+            title={t("login.hintTitle")}
+            body={t("login.hintBody")}
+            openLabel={t("login.openWindow")}
+            dismissLabel={t("login.dismiss")}
+          />
+        ) : null}
 
         <ErrorOverlay
           mode={overlayMode}

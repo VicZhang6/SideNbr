@@ -29,6 +29,10 @@ export interface Messages {
   "error.reload": string;
   "error.openOfficial": string;
   "error.dismiss": string;
+  "login.hintTitle": string;
+  "login.hintBody": string;
+  "login.openWindow": string;
+  "login.dismiss": string;
   "onboarding.hint": string;
   "onboarding.openShortcuts": string;
   "onboarding.dismiss": string;

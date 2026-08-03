@@ -18,6 +18,7 @@ const DIST = join(__dirname, "..", "dist");
 const required = [
   "manifest.json",
   "background.js",
+  "content-login-bridge.js",
   "sidepanel.html",
   "session-host.html",
   "settings.html",

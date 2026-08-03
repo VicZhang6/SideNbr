@@ -17,6 +17,11 @@ import {
   registerSidePanelActionToggle,
   registerSidePanelPortTracking,
 } from "./side-panel-toggle";
+import {
+  handleLoginState,
+  openLoginWindow,
+  registerLoginWindowLifecycle,
+} from "./login-window";
 
 const FRAME_HEADER_RULES: chrome.declarativeNetRequest.Rule[] = [
   {
@@ -315,6 +320,41 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       .catch(() => sendResponse({ persist: false }));
     return true;
   }
+
+  if (type === MSG.OPEN_LOGIN_WINDOW) {
+    const providerId =
+      message &&
+      typeof message === "object" &&
+      "providerId" in message &&
+      typeof (message as { providerId: unknown }).providerId === "string"
+        ? (message as { providerId: string }).providerId
+        : "";
+    const url =
+      message &&
+      typeof message === "object" &&
+      "url" in message &&
+      typeof (message as { url: unknown }).url === "string"
+        ? (message as { url: string }).url
+        : "";
+    void openLoginWindow(providerId, url)
+      .then((result) => sendResponse(result))
+      .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+
+  if (type === MSG.LOGIN_STATE) {
+    if (message && typeof message === "object") {
+      handleLoginState(
+        message as {
+          providerId?: unknown;
+          isLogin?: unknown;
+          topLevel?: unknown;
+        },
+        _sender
+      );
+    }
+    return;
+  }
 });
 
 // Side panel open/close is owned by side-panel-toggle (action + Alt+A).
@@ -322,6 +362,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 registerSidePanelPortTracking();
 registerSidePanelActionToggle();
+registerLoginWindowLifecycle();
 
 /**
  * Keep host in sync when user toggles persist or enabled providers

@@ -21,6 +21,11 @@ export const en: Messages = {
   "error.reload": "Refresh side panel",
   "error.openOfficial": "Open official site",
   "error.dismiss": "Dismiss",
+  "login.hintTitle": "Sign-in works better in a window",
+  "login.hintBody":
+    "{label} login (WeChat / OAuth) often cannot finish inside the side panel. Open a top-level window to sign in, then we will refresh this panel.",
+  "login.openWindow": "Open login window",
+  "login.dismiss": "Not now",
   "onboarding.hint":
     "You can change the wake shortcut in Settings or at chrome://extensions/shortcuts (macOS: Option+A, Windows/Linux: Alt+A).",
   "onboarding.openShortcuts": "Open shortcut settings",
