@@ -154,7 +154,7 @@ npm run typecheck
 |-------|--------|
 | UI | React 18, TypeScript, Vite |
 | Extension | Chrome MV3, Side Panel, DNR, `chrome.storage` |
-| Icons | lucide-react; brand marks adapted from LobeHub icons |
+| Icons | lucide-react; brand marks adapted from [Lobe Icons](https://github.com/lobehub/lobe-icons) |
 
 ### Layout
 
@@ -200,6 +200,11 @@ Issues and PRs welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md).
 - Small PRs with motivation + how you tested
 
 ---
+
+## Credits
+
+- Brand icons (Perplexity, OpenAI, DeepSeek, Grok, and others in the picker) are adapted from **[Lobe Icons](https://github.com/lobehub/lobe-icons)** ([@lobehub/icons](https://www.npmjs.com/package/@lobehub/icons)). Licensed under MIT by LobeHub. Vendored as local SVG components; the full package is not bundled.
+- UI icons: [lucide-react](https://lucide.dev/)
 
 ## Friendly Links
 
@@ -290,6 +295,11 @@ npm run build    # → dist/
 ### 免责声明
 
 SideNbr **不是** OpenAI / Perplexity / DeepSeek / xAI 等官方产品，也未获其背书。第三方名称仅用于描述嵌入目标。
+
+### 致谢
+
+- 品牌图标（Perplexity、OpenAI、DeepSeek、Grok 及选择器中其它标识）改编自 **[Lobe Icons](https://github.com/lobehub/lobe-icons)**（[@lobehub/icons](https://www.npmjs.com/package/@lobehub/icons)），LobeHub 以 MIT 许可发布。以本地 SVG 组件内嵌，未整包引入依赖。
+- 界面图标：[lucide-react](https://lucide.dev/)
 
 ### 友情链接
 

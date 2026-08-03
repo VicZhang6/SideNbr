@@ -1,8 +1,10 @@
 /**
- * Brand icons vendored from @lobehub/icons (https://lobehub.com/icons)
- * Paths sourced from Perplexity/Color and OpenAI/Mono components.
- * Kept as local SVG components to avoid pulling the full LobeHub icon package
- * (antd peer deps) into the Chrome extension bundle.
+ * Brand icons adapted from Lobe Icons (MIT):
+ * https://github.com/lobehub/lobe-icons
+ * (@lobehub/icons · https://lobehub.com/icons)
+ *
+ * Vendored as local SVG components so the full package (and its peer deps)
+ * is not pulled into the Chrome extension bundle.
  */
 import type { SVGProps } from "react";
 
