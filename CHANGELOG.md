@@ -6,6 +6,9 @@
 
 **SideNbr 0.9.1**
 
+- 侧栏可用快捷键稳定打开与关闭
+- 登录可在新窗口完成，完成后自动回到侧栏
+- 文案更短、更清楚
 - 设置中可导出、导入配置，便于迁移自定义服务
 - 补充安装更新说明
 - 补充开源依赖致谢
@@ -14,6 +17,9 @@
 
 **SideNbr 0.9.1**
 
+- Open and close the side panel reliably with the shortcut
+- Sign in via a new window, then return to the panel automatically
+- Clearer, shorter wording throughout
 - Export and import settings to move custom services between installs
 - Clearer install / update instructions
 - Open-source credits in the README
