@@ -12,30 +12,17 @@ const earlyTheme = detectSystemTheme();
 document.documentElement.dataset.theme = earlyTheme;
 document.documentElement.style.colorScheme = earlyTheme;
 
-// Report liveness to the service worker so shortcut toggle can close
-// reliably even when keyboard focus is inside a provider iframe.
-// Reconnect when the SW restarts (port drops but this document stays open).
+// Port liveness for side-panel toggle (reconnect when SW restarts).
 function connectSidePanelPort(): void {
   try {
     const port = chrome.runtime.connect({ name: SIDE_PANEL_PORT });
-    void chrome.windows.getCurrent().then((win) => {
-      if (typeof win.id === "number") {
-        try {
-          port.postMessage({ windowId: win.id });
-        } catch {
-          // Port already gone.
-        }
-      }
-    });
     port.onDisconnect.addListener(() => {
-      // Brief delay so a closing panel is not immediately re-registered.
       setTimeout(() => {
-        // If the document is going away, connect will fail harmlessly.
         connectSidePanelPort();
       }, 150);
     });
   } catch {
-    // SW unavailable during rare teardown races — ignore.
+    // SW unavailable during rare teardown races.
   }
 }
 connectSidePanelPort();

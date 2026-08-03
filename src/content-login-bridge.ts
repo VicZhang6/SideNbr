@@ -2,12 +2,19 @@
  * Content script (all_frames): detect login-like UI on built-in provider hosts
  * and report LOGIN_STATE to the service worker.
  *
- * Keep this file free of shared Vite chunks — it must ship as a single IIFE.
+ * Classic script — no shared Vite imports. Keep CONTENT_LOGIN_STATE_TYPE in
+ * sync with MSG.LOGIN_STATE in messages.ts.
+ *
+ * Detection policy:
+ * - URL path heuristics first (cheap, enough for ChatGPT/auth routes).
+ * - DOM text scan only when needed (DeepSeek WeChat stays on `/`).
+ * - MutationObserver only while login-like (disconnect when clear).
  */
 
-const MSG_LOGIN_STATE = "sidenbr/login-state";
+/** Must match MSG.LOGIN_STATE in src/messages.ts */
+const LOGIN_STATE_TYPE = "sidenbr/login-state";
 
-const POLL_MS = 1200;
+const POLL_MS = 1500;
 const STABLE_MS = 900;
 
 function providerIdFromHost(hostname: string): string | null {
@@ -43,11 +50,16 @@ function pathLooksLikeLogin(pathAndSearch: string): boolean {
   );
 }
 
+/** Providers that keep the same path for login UI (need DOM scan). */
+function needsDomScan(providerId: string): boolean {
+  return providerId === "deepseek";
+}
+
 function bodyLooksLikeLogin(text: string): boolean {
   if (!text) {
     return false;
   }
-  // DeepSeek CN phone / WeChat QR (matches user-reported stuck state).
+  // DeepSeek CN phone / WeChat QR.
   if (
     /微信扫码登录|扫描成功|请输入手机号|发送验证码|密码登录|使用\s*Apple\s*账号登录/.test(
       text
@@ -55,7 +67,7 @@ function bodyLooksLikeLogin(text: string): boolean {
   ) {
     return true;
   }
-  // Generic EN auth chrome (require a couple of signals to reduce false positives).
+  // Generic EN: require multiple signals.
   const enSignals = [
     /sign\s*in\s*to\s*continue/i,
     /log\s*in\s*to\s*continue/i,
@@ -74,17 +86,19 @@ function bodyLooksLikeLogin(text: string): boolean {
   return hits >= 2;
 }
 
-function detectLoginLike(): boolean {
+function detectLoginLike(providerId: string): boolean {
   try {
     const path = `${location.pathname}${location.search}${location.hash}`;
     if (pathLooksLikeLogin(path)) {
       return true;
     }
+    if (!needsDomScan(providerId)) {
+      return false;
+    }
     const body = document.body;
     if (!body) {
       return false;
     }
-    // Cap text scan for performance.
     const text = (body.innerText || body.textContent || "").slice(0, 8000);
     return bodyLooksLikeLogin(text);
   } catch {
@@ -97,12 +111,12 @@ if (providerId) {
   let lastSent: boolean | null = null;
   let pending: boolean | null = null;
   let stableTimer: ReturnType<typeof setTimeout> | null = null;
+  let observer: MutationObserver | null = null;
 
   const topLevel = (() => {
     try {
       return window.top === window;
     } catch {
-      // Cross-origin top access can throw in nested frames.
       return false;
     }
   })();
@@ -115,21 +129,39 @@ if (providerId) {
     try {
       void chrome.runtime
         .sendMessage({
-          type: MSG_LOGIN_STATE,
+          type: LOGIN_STATE_TYPE,
           providerId,
           isLogin,
           topLevel,
         })
-        .catch(() => {
-          // Extension context invalidated during reload — ignore.
-        });
+        .catch(() => {});
     } catch {
-      // ignore
+      // Extension context invalidated.
+    }
+  };
+
+  const syncObserver = (isLogin: boolean) => {
+    if (isLogin && !observer && needsDomScan(providerId)) {
+      try {
+        observer = new MutationObserver(() => {
+          evaluate();
+        });
+        observer.observe(document.documentElement, {
+          childList: true,
+          subtree: true,
+          characterData: false,
+        });
+      } catch {
+        observer = null;
+      }
+    } else if (!isLogin && observer) {
+      observer.disconnect();
+      observer = null;
     }
   };
 
   const evaluate = () => {
-    const now = detectLoginLike();
+    const now = detectLoginLike(providerId);
     if (now === pending) {
       return;
     }
@@ -137,11 +169,11 @@ if (providerId) {
     if (stableTimer != null) {
       clearTimeout(stableTimer);
     }
-    // Debounce so SPA route flashes don't flicker the side-panel banner.
     stableTimer = setTimeout(() => {
       stableTimer = null;
       if (pending != null) {
         report(pending);
+        syncObserver(pending);
       }
     }, STABLE_MS);
   };
@@ -149,20 +181,6 @@ if (providerId) {
   const start = () => {
     evaluate();
     setInterval(evaluate, POLL_MS);
-
-    try {
-      const mo = new MutationObserver(() => {
-        evaluate();
-      });
-      mo.observe(document.documentElement, {
-        childList: true,
-        subtree: true,
-        characterData: true,
-      });
-    } catch {
-      // MutationObserver unavailable — interval still runs.
-    }
-
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") {
         evaluate();

@@ -1,16 +1,24 @@
 /**
  * Top-level login window flow.
  *
- * Third-party WeChat/OAuth logins often break inside the side-panel iframe
- * (top navigation blocked, storage partitioned). We open a real browser popup
- * for login, detect completion via content-script LOGIN_STATE, then tell the
- * side panel to reload its iframe.
+ * WeChat/OAuth often cannot finish inside the side-panel iframe. Open a real
+ * browser popup, use content-script LOGIN_STATE for hints + best-effort
+ * completion, then tell the side panel to reload its iframe.
+ *
+ * Completion is best-effort (DOM/URL heuristics). Users can always dismiss
+ * the hint and refresh manually.
  */
 
-import { MSG } from "./messages";
+import {
+  MSG,
+  broadcastExtensionMessage,
+  type LoginStateMessage,
+} from "./messages";
 
 const LOGIN_WINDOW_WIDTH = 520;
 const LOGIN_WINDOW_HEIGHT = 780;
+/** Delay before closing popup after success so the SPA can settle. */
+const CLOSE_AFTER_SUCCESS_MS = 900;
 
 type LoginSession = {
   providerId: string;
@@ -20,35 +28,31 @@ type LoginSession = {
   sawLogin: boolean;
 };
 
-/** tabId → active login popup session */
+/** Single index: tabId → session (login windows are few). */
 const sessionsByTab = new Map<number, LoginSession>();
-/** providerId → tabId (at most one login window per provider) */
-const tabByProvider = new Map<string, number>();
 
 let listenersRegistered = false;
 
-function broadcast(message: Record<string, unknown>): void {
-  try {
-    void chrome.runtime.sendMessage(message).catch(() => {
-      // No receiving page (side panel closed) — fine.
-    });
-  } catch {
-    // ignore
+function findSessionByProvider(providerId: string): LoginSession | null {
+  for (const session of sessionsByTab.values()) {
+    if (session.providerId === providerId) {
+      return session;
+    }
   }
+  return null;
 }
 
-async function focusExistingLoginWindow(tabId: number): Promise<boolean> {
-  const session = sessionsByTab.get(tabId);
-  if (!session) {
-    return false;
-  }
+function removeSession(session: LoginSession): void {
+  sessionsByTab.delete(session.tabId);
+}
+
+async function focusSession(session: LoginSession): Promise<boolean> {
   try {
     await chrome.windows.update(session.windowId, { focused: true });
-    await chrome.tabs.update(tabId, { active: true });
+    await chrome.tabs.update(session.tabId, { active: true });
     return true;
   } catch {
-    sessionsByTab.delete(tabId);
-    tabByProvider.delete(session.providerId);
+    removeSession(session);
     return false;
   }
 }
@@ -64,10 +68,9 @@ export async function openLoginWindow(
     return { ok: false, reason: "invalid" };
   }
 
-  const existingTabId = tabByProvider.get(providerId);
-  if (existingTabId != null) {
-    const focused = await focusExistingLoginWindow(existingTabId);
-    if (focused) {
+  const existing = findSessionByProvider(providerId);
+  if (existing) {
+    if (await focusSession(existing)) {
       return { ok: true };
     }
   }
@@ -87,65 +90,51 @@ export async function openLoginWindow(
       return { ok: false, reason: "create-failed" };
     }
 
-    const session: LoginSession = {
+    sessionsByTab.set(tabId, {
       providerId,
       windowId,
       tabId,
       sawLogin: false,
-    };
-    sessionsByTab.set(tabId, session);
-    tabByProvider.set(providerId, tabId);
+    });
     return { ok: true };
   } catch {
     return { ok: false, reason: "create-failed" };
   }
 }
 
-async function completeLoginSession(session: LoginSession): Promise<void> {
-  sessionsByTab.delete(session.tabId);
-  if (tabByProvider.get(session.providerId) === session.tabId) {
-    tabByProvider.delete(session.providerId);
-  }
+function completeLoginSession(session: LoginSession): void {
+  removeSession(session);
 
-  broadcast({
+  broadcastExtensionMessage({
     type: MSG.LOGIN_SUCCESS,
     providerId: session.providerId,
   });
-  // Clear side-panel hint if still showing.
-  broadcast({
+  broadcastExtensionMessage({
     type: MSG.LOGIN_HINT,
     providerId: session.providerId,
     show: false,
   });
 
-  // Close the login popup shortly after success (hand off to side panel iframe).
   setTimeout(() => {
     void chrome.windows.remove(session.windowId).catch(() => {
       // already closed
     });
-  }, 900);
+  }, CLOSE_AFTER_SUCCESS_MS);
 }
 
 /**
- * Content-script LOGIN_STATE handler.
+ * Content-script LOGIN_STATE handler (typed).
  */
-export function handleLoginState(message: {
-  providerId?: unknown;
-  isLogin?: unknown;
-  topLevel?: unknown;
-}, sender: chrome.runtime.MessageSender): void {
-  const providerId =
-    typeof message.providerId === "string" ? message.providerId : null;
-  if (!providerId) {
-    return;
-  }
-  const isLogin = message.isLogin === true;
-  const topLevel = message.topLevel === true;
+export function handleLoginState(
+  message: LoginStateMessage,
+  sender: chrome.runtime.MessageSender
+): void {
+  const { providerId, isLogin, topLevel } = message;
   const tabId = sender.tab?.id;
 
+  // Nested frame (side panel iframe, session-host iframe): surface hint only.
   if (!topLevel) {
-    // Side panel (or other) iframe: surface hint only.
-    broadcast({
+    broadcastExtensionMessage({
       type: MSG.LOGIN_HINT,
       providerId,
       show: isLogin,
@@ -153,7 +142,7 @@ export function handleLoginState(message: {
     return;
   }
 
-  // Top-level document — may be our login popup.
+  // Top-level — only act if this tab is our login popup.
   if (tabId == null) {
     return;
   }
@@ -167,31 +156,9 @@ export function handleLoginState(message: {
     return;
   }
 
-  // Login UI gone after we saw it → treat as success.
-  if (session.sawLogin && !isLogin) {
-    void completeLoginSession(session);
-  }
-}
-
-function clearSessionForTab(tabId: number): void {
-  const session = sessionsByTab.get(tabId);
-  if (!session) {
-    return;
-  }
-  sessionsByTab.delete(tabId);
-  if (tabByProvider.get(session.providerId) === tabId) {
-    tabByProvider.delete(session.providerId);
-  }
-}
-
-function clearSessionForWindow(windowId: number): void {
-  for (const [tabId, session] of sessionsByTab) {
-    if (session.windowId === windowId) {
-      sessionsByTab.delete(tabId);
-      if (tabByProvider.get(session.providerId) === tabId) {
-        tabByProvider.delete(session.providerId);
-      }
-    }
+  // Login UI gone after we saw it → best-effort success.
+  if (session.sawLogin) {
+    completeLoginSession(session);
   }
 }
 
@@ -205,10 +172,14 @@ export function registerLoginWindowLifecycle(): void {
   listenersRegistered = true;
 
   chrome.tabs.onRemoved.addListener((tabId) => {
-    clearSessionForTab(tabId);
+    sessionsByTab.delete(tabId);
   });
 
   chrome.windows.onRemoved.addListener((windowId) => {
-    clearSessionForWindow(windowId);
+    for (const [tabId, session] of sessionsByTab) {
+      if (session.windowId === windowId) {
+        sessionsByTab.delete(tabId);
+      }
+    }
   });
 }

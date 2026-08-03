@@ -1,134 +1,82 @@
 /**
  * Reliable open/close toggle for Chrome Side Panel.
  *
- * Chrome requires `sidePanel.open()` to run in the same user-gesture turn as
- * the action click / `_execute_action` shortcut. Any `await` before `open()`
- * drops the gesture and open fails silently — which is why Google Chrome
- * could not open the panel after we took over from openPanelOnActionClick,
- * while more permissive browsers (e.g. Dia) still worked.
+ * Chrome requires `sidePanel.open()` in the same user-gesture turn as the
+ * action click / `_execute_action`. Any await before open() drops the gesture.
  *
- * Rules:
- * - Open: no await before `sidePanel.open()` (sync open-state check only).
- * - Close: may await freely (`close` / setOptions do not need a gesture).
+ * Open-state is a simple port count: sidepanel.html connects on load and
+ * reconnects after SW restarts. No per-window indexing — close path may await
+ * getContexts for the target windowId.
  */
 
 import { SIDE_PANEL_PORT } from "./messages";
 
 const SIDE_PANEL_PATH = "sidepanel.html";
 
-/** windowId → open side-panel ports (document alive while panel is open). */
-const openPortsByWindow = new Map<number, Set<chrome.runtime.Port>>();
+/** Live side-panel ports (document alive while panel is open). */
+const panelPorts = new Set<chrome.runtime.Port>();
 
-function trackPort(port: chrome.runtime.Port, windowId: number): void {
-  let set = openPortsByWindow.get(windowId);
-  if (!set) {
-    set = new Set();
-    openPortsByWindow.set(windowId, set);
-  }
-  set.add(port);
-  port.onDisconnect.addListener(() => {
-    const s = openPortsByWindow.get(windowId);
-    if (!s) {
-      return;
-    }
-    s.delete(port);
-    if (s.size === 0) {
-      openPortsByWindow.delete(windowId);
-    }
-  });
-}
-
-/** Synchronous: true when we currently hold a live side-panel port. */
-function hasOpenPort(windowId: number): boolean {
-  const ports = openPortsByWindow.get(windowId);
-  return Boolean(ports && ports.size > 0);
-}
-
-/** Any window has a live side-panel port (single-window fallback). */
-function hasAnyOpenPort(): boolean {
-  for (const ports of openPortsByWindow.values()) {
-    if (ports.size > 0) {
-      return true;
-    }
-  }
-  return false;
+function isPanelOpenSync(): boolean {
+  return panelPorts.size > 0;
 }
 
 /**
- * Register port listener once so the SW knows when the panel document is live.
- * Side panel pages call `chrome.runtime.connect({ name: SIDE_PANEL_PORT })`.
+ * Register once: side panel documents connect with SIDE_PANEL_PORT.
  */
 export function registerSidePanelPortTracking(): void {
   chrome.runtime.onConnect.addListener((port) => {
     if (port.name !== SIDE_PANEL_PORT) {
       return;
     }
-
-    let assigned = false;
-    const assign = (windowId: number) => {
-      if (assigned || !Number.isFinite(windowId)) {
-        return;
-      }
-      assigned = true;
-      trackPort(port, windowId);
-    };
-
-    port.onMessage.addListener((msg: unknown) => {
-      if (
-        msg &&
-        typeof msg === "object" &&
-        "windowId" in msg &&
-        typeof (msg as { windowId: unknown }).windowId === "number"
-      ) {
-        assign((msg as { windowId: number }).windowId);
-      }
+    panelPorts.add(port);
+    port.onDisconnect.addListener(() => {
+      panelPorts.delete(port);
     });
-
-    // Fallback if the windowId message is delayed/lost (async OK here).
-    void (async () => {
-      const open = await querySidePanelContexts();
-      if (open.length === 1) {
-        assign(open[0]!.windowId);
-      }
-    })();
   });
 }
 
-type SidePanelContext = {
-  windowId: number;
-  tabId?: number;
-};
-
-async function querySidePanelContexts(): Promise<SidePanelContext[]> {
-  if (!chrome.runtime.getContexts) {
-    return [];
+async function resolveCloseTarget(
+  tab?: chrome.tabs.Tab
+): Promise<{ windowId?: number; tabId?: number }> {
+  if (chrome.runtime.getContexts) {
+    try {
+      const contexts = await chrome.runtime.getContexts({
+        contextTypes: ["SIDE_PANEL" as chrome.runtime.ContextType],
+      });
+      const withWindow = contexts.find((c) => typeof c.windowId === "number");
+      if (withWindow && typeof withWindow.windowId === "number") {
+        return {
+          windowId: withWindow.windowId,
+          tabId:
+            typeof withWindow.tabId === "number"
+              ? withWindow.tabId
+              : tab?.id,
+        };
+      }
+    } catch {
+      // fall through
+    }
   }
-  try {
-    const contexts = await chrome.runtime.getContexts({
-      contextTypes: ["SIDE_PANEL" as chrome.runtime.ContextType],
-    });
-    return contexts
-      .filter((c) => typeof c.windowId === "number")
-      .map((c) => ({
-        windowId: c.windowId as number,
-        tabId: typeof c.tabId === "number" ? c.tabId : undefined,
-      }));
-  } catch {
-    return [];
-  }
+  return {
+    windowId: typeof tab?.windowId === "number" ? tab.windowId : undefined,
+    tabId: typeof tab?.id === "number" ? tab.id : undefined,
+  };
 }
 
-async function closeSidePanel(windowId: number, tabId?: number): Promise<void> {
+async function closeSidePanel(tab?: chrome.tabs.Tab): Promise<void> {
+  const { windowId, tabId } = await resolveCloseTarget(tab);
   const sidePanel = chrome.sidePanel as typeof chrome.sidePanel & {
     close?: (options: { windowId?: number; tabId?: number }) => Promise<void>;
   };
 
   if (typeof sidePanel.close === "function") {
-    try {
-      await sidePanel.close({ windowId });
-      return;
-    } catch {
-      // Fall through: try tabId, then setOptions dance.
+    if (typeof windowId === "number") {
+      try {
+        await sidePanel.close({ windowId });
+        return;
+      } catch {
+        // try tabId
+      }
     }
     if (typeof tabId === "number") {
       try {
@@ -140,7 +88,7 @@ async function closeSidePanel(windowId: number, tabId?: number): Promise<void> {
     }
   }
 
-  // Older Chrome: briefly disable to force-close, then re-enable for next open.
+  // Older Chrome: briefly disable to force-close, then re-enable.
   try {
     await chrome.sidePanel.setOptions({ enabled: false });
     await chrome.sidePanel.setOptions({
@@ -152,9 +100,7 @@ async function closeSidePanel(windowId: number, tabId?: number): Promise<void> {
   }
 }
 
-/**
- * Open immediately — must stay free of prior awaits (user gesture).
- */
+/** Open immediately — must stay free of prior awaits (user gesture). */
 function openSidePanelSync(tab: chrome.tabs.Tab): void {
   const tabId = tab.id;
   const windowId = tab.windowId;
@@ -163,7 +109,7 @@ function openSidePanelSync(tab: chrome.tabs.Tab): void {
     void chrome.sidePanel.open({ tabId }).catch(() => {
       if (typeof windowId === "number") {
         void chrome.sidePanel.open({ windowId }).catch(() => {
-          // Restricted page or gesture lost — nothing more we can do.
+          // Restricted page or gesture lost.
         });
       }
     });
@@ -178,53 +124,26 @@ function openSidePanelSync(tab: chrome.tabs.Tab): void {
 }
 
 /**
- * Toggle SideNbr side panel for the tab that triggered the action / shortcut.
- *
- * Open path is gesture-safe (no await before open).
- * Close path may use async APIs freely.
+ * Toggle side panel. Open path is gesture-safe (sync open-state only).
  */
 export function toggleSidePanel(tab: chrome.tabs.Tab): void {
-  const windowId = tab.windowId;
-  if (typeof windowId !== "number") {
+  if (isPanelOpenSync()) {
+    void closeSidePanel(tab);
     return;
   }
-
-  // Sync only: ports prove the panel document is alive → close.
-  // Do not await getContexts here — that would burn the open gesture.
-  if (hasOpenPort(windowId)) {
-    void closeSidePanel(windowId, tab.id);
-    return;
-  }
-
-  // Single tracked panel (windowId message race): still treat as open → close.
-  if (openPortsByWindow.size === 1 && hasAnyOpenPort()) {
-    const onlyWindowId = openPortsByWindow.keys().next().value;
-    if (typeof onlyWindowId === "number") {
-      void closeSidePanel(onlyWindowId, tab.id);
-      return;
-    }
-  }
-
-  // Assume closed → open in this turn (keeps user gesture).
-  // If the panel was already open after an SW restart (ports empty until
-  // reconnect), open() is effectively a no-op; the next click closes.
+  // Ports empty after SW restart while panel still open → open() is a no-op;
+  // next click closes once the panel reconnects.
   openSidePanelSync(tab);
 }
 
-/**
- * Action click / keyboard `_execute_action` should run our toggle — not
- * Chrome's built-in openPanelOnActionClick path alone.
- */
+/** Disable Chrome's built-in openPanelOnActionClick — we own the toggle. */
 export async function installSidePanelToggleBehavior(): Promise<void> {
   await chrome.sidePanel.setPanelBehavior({
     openPanelOnActionClick: false,
   });
 }
 
-/**
- * Register once: toolbar icon + `_execute_action` shortcut.
- * Handler must not be async — open must stay in the gesture turn.
- */
+/** Register once: toolbar icon + `_execute_action` shortcut. */
 export function registerSidePanelActionToggle(): void {
   chrome.action.onClicked.addListener((tab) => {
     toggleSidePanel(tab);

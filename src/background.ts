@@ -5,13 +5,17 @@
  */
 
 import {
-  MSG,
   bootstrapSessionHost,
   ensureSessionHost,
   getPersistEnabled,
   syncPersistMode,
   teardownSessionHost,
 } from "./session-host-manager";
+import {
+  MSG,
+  parseExtensionMessage,
+  type ExtensionMessage,
+} from "./messages";
 import {
   installSidePanelToggleBehavior,
   registerSidePanelActionToggle,
@@ -252,109 +256,81 @@ async function clearProviderServiceWorkers(): Promise<void> {
   }
 }
 
-function messageType(message: unknown): string | null {
-  if (typeof message === "string") {
-    return message;
-  }
-  if (message && typeof message === "object" && "type" in message) {
-    const t = (message as { type: unknown }).type;
-    return typeof t === "string" ? t : null;
-  }
-  return null;
-}
+type SendResponse = (response?: unknown) => void;
 
 /**
- * Persist / session-host message handlers.
+ * Typed message dispatch. Returns true when sendResponse will be called async.
  */
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  const type = messageType(message);
-  if (!type) {
-    return;
-  }
+function dispatchMessage(
+  msg: ExtensionMessage,
+  sender: chrome.runtime.MessageSender,
+  sendResponse: SendResponse
+): boolean {
+  switch (msg.type) {
+    case MSG.ENSURE_SESSION_HOST:
+      void ensureSessionHost()
+        .then((windowId) => sendResponse({ ok: true, windowId }))
+        .catch(() => sendResponse({ ok: false }));
+      return true;
 
-  if (type === MSG.ENSURE_SESSION_HOST) {
-    void ensureSessionHost()
-      .then((windowId) => sendResponse({ ok: true, windowId }))
-      .catch(() => sendResponse({ ok: false }));
-    return true;
-  }
+    case MSG.TEARDOWN_SESSION_HOST:
+      void teardownSessionHost()
+        .then(() => sendResponse({ ok: true }))
+        .catch(() => sendResponse({ ok: false }));
+      return true;
 
-  if (type === MSG.TEARDOWN_SESSION_HOST) {
-    void teardownSessionHost()
-      .then(() => sendResponse({ ok: true }))
-      .catch(() => sendResponse({ ok: false }));
-    return true;
-  }
+    case MSG.PERSIST_CHANGED:
+      void syncPersistMode(msg.enabled)
+        .then(() => sendResponse({ ok: true, enabled: msg.enabled }))
+        .catch(() => sendResponse({ ok: false }));
+      return true;
 
-  if (type === MSG.PERSIST_CHANGED) {
-    const enabled = Boolean(
-      message &&
-        typeof message === "object" &&
-        "enabled" in message &&
-        (message as { enabled: unknown }).enabled
-    );
-    void syncPersistMode(enabled)
-      .then(() => sendResponse({ ok: true, enabled }))
-      .catch(() => sendResponse({ ok: false }));
-    return true;
-  }
-
-  if (type === MSG.SYNC_PROVIDERS) {
-    void (async () => {
-      try {
-        const persist = await getPersistEnabled();
-        if (persist) {
-          await ensureSessionHost();
+    case MSG.SYNC_PROVIDERS:
+      void (async () => {
+        try {
+          if (await getPersistEnabled()) {
+            await ensureSessionHost();
+          }
+          sendResponse({ ok: true });
+        } catch {
+          sendResponse({ ok: false });
         }
-        sendResponse({ ok: true });
-      } catch {
-        sendResponse({ ok: false });
-      }
-    })();
-    return true;
-  }
+      })();
+      return true;
 
-  if (type === MSG.GET_PERSIST) {
-    void getPersistEnabled()
-      .then((persist) => sendResponse({ persist }))
-      .catch(() => sendResponse({ persist: false }));
-    return true;
-  }
+    case MSG.GET_PERSIST:
+      void getPersistEnabled()
+        .then((persist) => sendResponse({ persist }))
+        .catch(() => sendResponse({ persist: false }));
+      return true;
 
-  if (type === MSG.OPEN_LOGIN_WINDOW) {
-    const providerId =
-      message &&
-      typeof message === "object" &&
-      "providerId" in message &&
-      typeof (message as { providerId: unknown }).providerId === "string"
-        ? (message as { providerId: string }).providerId
-        : "";
-    const url =
-      message &&
-      typeof message === "object" &&
-      "url" in message &&
-      typeof (message as { url: unknown }).url === "string"
-        ? (message as { url: string }).url
-        : "";
-    void openLoginWindow(providerId, url)
-      .then((result) => sendResponse(result))
-      .catch(() => sendResponse({ ok: false }));
-    return true;
-  }
+    case MSG.OPEN_LOGIN_WINDOW:
+      void openLoginWindow(msg.providerId, msg.url)
+        .then((result) => sendResponse(result))
+        .catch(() => sendResponse({ ok: false }));
+      return true;
 
-  if (type === MSG.LOGIN_STATE) {
-    if (message && typeof message === "object") {
-      handleLoginState(
-        message as {
-          providerId?: unknown;
-          isLogin?: unknown;
-          topLevel?: unknown;
-        },
-        _sender
-      );
-    }
+    case MSG.LOGIN_STATE:
+      handleLoginState(msg, sender);
+      return false;
+
+    case MSG.LOGIN_HINT:
+    case MSG.LOGIN_SUCCESS:
+    case MSG.SESSION_HOST_STATUS:
+      // Side panel / other pages handle these; SW ignores.
+      return false;
+
+    default:
+      return false;
+  }
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  const msg = parseExtensionMessage(message);
+  if (!msg) {
     return;
   }
+  return dispatchMessage(msg, sender, sendResponse);
 });
 
 // Side panel open/close is owned by side-panel-toggle (action + Alt+A).

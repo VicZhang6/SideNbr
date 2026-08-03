@@ -31,10 +31,12 @@ import { ErrorOverlay, type OverlayMode } from "./components/ErrorOverlay";
 import { LoadingHint } from "./components/LoadingHint";
 import { LoginHint } from "./components/LoginHint";
 import { OnboardingTip } from "./components/OnboardingTip";
+import { useLoginHint } from "./hooks/useLoginHint";
+import type { ExtensionMessage } from "./messages";
 
 const SLOW_LOAD_MS = 12_000;
 
-function notifyBackground(message: Record<string, unknown>): void {
+function notifyBackground(message: ExtensionMessage): void {
   try {
     void chrome.runtime.sendMessage(message).catch(() => {});
   } catch {
@@ -63,10 +65,6 @@ export default function App() {
   const [bootstrapped, setBootstrapped] = useState(false);
   /** True when GitHub has a newer release — iOS-style badge on settings. */
   const [updateAvailable, setUpdateAvailable] = useState(false);
-  /** Content script detected login UI in the active provider iframe. */
-  const [loginHintVisible, setLoginHintVisible] = useState(false);
-  /** Providers for which the user dismissed the login banner this session. */
-  const loginHintDismissedRef = useRef<Set<ProviderId>>(new Set());
 
   const activeRef = useRef(active);
   activeRef.current = active;
@@ -318,7 +316,6 @@ export default function App() {
       setLoading(true);
       setShowSlowLoadHelp(false);
       setSlowDismissed(false);
-      setLoginHintVisible(false);
     }
   }, []);
 
@@ -334,82 +331,21 @@ export default function App() {
     }
   }, []);
 
-  const openLoginWindow = useCallback(() => {
-    const id = activeRef.current;
-    const cfg = resolveProvider(id, customProvidersRef.current);
-    const url = cfg?.externalUrl;
-    if (!url) {
-      return;
-    }
-    notifyBackground({
-      type: MSG.OPEN_LOGIN_WINDOW,
-      providerId: id,
-      url,
-    });
+  const getExternalUrl = useCallback((id: ProviderId) => {
+    return (
+      resolveProvider(id, customProvidersRef.current)?.externalUrl ?? null
+    );
   }, []);
 
-  const dismissLoginHint = useCallback(() => {
-    const id = activeRef.current;
-    loginHintDismissedRef.current.add(id);
-    setLoginHintVisible(false);
-  }, []);
-
-  // Login hint + success from background / content-login-bridge.
-  useEffect(() => {
-    const onMessage = (
-      message: unknown,
-      _sender: chrome.runtime.MessageSender,
-      _sendResponse: (r?: unknown) => void
-    ): void => {
-      if (!message || typeof message !== "object" || !("type" in message)) {
-        return;
-      }
-      const msg = message as {
-        type: string;
-        providerId?: unknown;
-        show?: unknown;
-      };
-      const providerId =
-        typeof msg.providerId === "string" ? msg.providerId : null;
-      if (!providerId) {
-        return;
-      }
-
-      if (msg.type === MSG.LOGIN_HINT) {
-        if (providerId !== activeRef.current) {
-          return;
-        }
-        const show = msg.show === true;
-        if (show && loginHintDismissedRef.current.has(providerId)) {
-          return;
-        }
-        if (!show) {
-          loginHintDismissedRef.current.delete(providerId);
-        }
-        setLoginHintVisible(show);
-        return;
-      }
-
-      if (msg.type === MSG.LOGIN_SUCCESS) {
-        loginHintDismissedRef.current.delete(providerId);
-        if (providerId === activeRef.current) {
-          setLoginHintVisible(false);
-        }
-        // Remount iframe so it picks up cookies / session from top-level login.
-        reloadProvider(providerId);
-      }
-    };
-
-    chrome.runtime.onMessage.addListener(onMessage);
-    return () => {
-      chrome.runtime.onMessage.removeListener(onMessage);
-    };
-  }, [reloadProvider]);
-
-  // Reset dismissed flag when switching providers so hints can show again.
-  useEffect(() => {
-    setLoginHintVisible(false);
-  }, [active]);
+  const {
+    visible: loginHintVisible,
+    openLoginWindow,
+    dismiss: dismissLoginHint,
+  } = useLoginHint({
+    activeProviderId: active,
+    getExternalUrl,
+    onLoginSuccess: reloadProvider,
+  });
 
   const handleFrameLoad = useCallback((id: ProviderId) => {
     setLoaded((prev) => {
@@ -526,10 +462,6 @@ export default function App() {
             providerLabel={providerLabel}
             onOpenWindow={openLoginWindow}
             onDismiss={dismissLoginHint}
-            title={t("login.hintTitle")}
-            body={t("login.hintBody")}
-            openLabel={t("login.openWindow")}
-            dismissLabel={t("login.dismiss")}
           />
         ) : null}
 
